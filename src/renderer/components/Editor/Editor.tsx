@@ -56,7 +56,7 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onTableAc
     Link.configure({ openOnClick: false, autolink: true }),
     Image.configure({ allowBase64: true }),
     TaskList,
-    TaskItem.configure({ nested: true }),
+    TaskItem.configure({ nested: true, HTMLAttributes: { class: 'task-item' } }),
     Table.configure({ resizable: true }),
     TableRow,
     TableHeader,

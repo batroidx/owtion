@@ -98,20 +98,23 @@ button { cursor: pointer; }
 .tiptap th { background: var(--bg-secondary); font-weight: 600; }
 .tiptap .selectedCell:after { background: color-mix(in srgb, var(--accent) 15%, transparent); content: ''; inset: 0; pointer-events: none; position: absolute; }
 .tiptap [data-type="taskList"] { padding: 0; list-style: none; }
-.tiptap [data-type="taskItem"] {
-  display: grid;
-  grid-template-columns: 16px minmax(0, 1fr);
-  align-items: start;
-  column-gap: 8px;
+.tiptap ul[data-type="taskList"] > li.task-item {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 8px;
   list-style: none;
 }
-.tiptap [data-type="taskItem"] > label {
+.tiptap ul[data-type="taskList"] > li.task-item > label {
   display: flex;
+  flex: 0 0 16px;
   justify-content: center;
   padding-top: 4px;
 }
-.tiptap [data-type="taskItem"] > div { min-width: 0; grid-column: 2; }
-.tiptap [data-type="taskItem"] > div > p { margin: 0; }
+.tiptap ul[data-type="taskList"] > li.task-item > div {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.tiptap ul[data-type="taskList"] > li.task-item > div > p { margin: 0; }
 .toggle-block { margin: 7px 0; }
 .toggle-block summary { width: fit-content; cursor: pointer; color: var(--text); font-weight: 600; }
 .toggle-content { padding-left: 22px; }
@@ -451,6 +454,7 @@ button { cursor: pointer; }
   z-index: 5;
   right: 0;
   left: 48px;
+  display: none;
   height: 2px;
   border-radius: 2px;
   background: var(--accent);

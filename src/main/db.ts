@@ -1,0 +1,197 @@
+import { app } from 'electron'
+import { dirname, join } from 'node:path'
+import { mkdirSync, appendFileSync } from 'node:fs'
+import { nanoid } from 'nanoid'
+import type { Page, PageInput, AppSettings } from '../shared/types'
+
+type SqlValue = string | number | bigint | Uint8Array | null
+interface DatabaseStatement {
+  run(...params: SqlValue[]): { changes: number | bigint }
+  get(...params: SqlValue[]): unknown
+  all(...params: SqlValue[]): unknown[]
+}
+interface DatabaseConnection {
+  exec(source: string): void
+  prepare(source: string): DatabaseStatement
+  close(): void
+  pragma?: (source: string) => unknown
+}
+
+let db: DatabaseConnection
+let databaseOpen = false
+const logFile = join(app.getPath('userData'), 'owtion-errors.log')
+
+function logError(context: string, error: unknown): void {
+  const message = error instanceof Error ? error.stack ?? error.message : String(error)
+  try {
+    mkdirSync(dirname(logFile), { recursive: true })
+    appendFileSync(logFile, `[${new Date().toISOString()}] ${context}: ${message}\n`)
+  } catch (loggingError) {
+    console.error('Не удалось записать ошибку в журнал:', loggingError)
+    console.error(context, error)
+  }
+}
+
+function run<T>(context: string, operation: () => T): T {
+  try {
+    return operation()
+  } catch (error) {
+    logError(context, error)
+    throw error
+  }
+}
+
+export async function initializeDatabase(): Promise<void> {
+  const path = join(app.getPath('userData'), 'owtion.sqlite')
+  try {
+    const sqlite = await import('better-sqlite3')
+    // Разные SQLite-драйверы имеют совместимый sync API, но несовместимые TypeScript-типы.
+    db = new sqlite.default(path) as unknown as DatabaseConnection
+    db.pragma?.('journal_mode = WAL')
+    db.pragma?.('foreign_keys = ON')
+  } catch (error) {
+    logError('Загрузка better-sqlite3; используется SQLite из Node.js', error)
+    const { DatabaseSync } = await import('node:sqlite')
+    db = new DatabaseSync(path) as unknown as DatabaseConnection
+    db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;')
+  }
+  databaseOpen = true
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS pages (
+        id TEXT PRIMARY KEY, title TEXT NOT NULL, icon TEXT NOT NULL DEFAULT '📄',
+        parent_id TEXT REFERENCES pages(id) ON DELETE SET NULL, content TEXT NOT NULL,
+        created_at TEXT NOT NULL, updated_at TEXT NOT NULL, is_favorite INTEGER NOT NULL DEFAULT 0,
+        deleted_at TEXT
+      );
+      CREATE TABLE IF NOT EXISTS blocks_index (
+        page_id TEXT NOT NULL REFERENCES pages(id) ON DELETE CASCADE,
+        block_id TEXT NOT NULL, type TEXT NOT NULL, text TEXT NOT NULL,
+        PRIMARY KEY (page_id, block_id)
+      );
+      CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, page_id TEXT NOT NULL REFERENCES pages(id) ON DELETE CASCADE,
+        content TEXT NOT NULL, created_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_pages_updated ON pages(updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_pages_parent ON pages(parent_id);
+      CREATE INDEX IF NOT EXISTS idx_history_page ON history(page_id, created_at DESC);
+    `)
+  } catch (error) {
+    logError('Инициализация SQLite', error)
+    throw error
+  }
+}
+
+export function closeDatabase(): void {
+  if (databaseOpen) {
+    db.close()
+    databaseOpen = false
+  }
+}
+
+function toPage(row: Record<string, unknown>): Page {
+  return {
+    id: String(row.id), title: String(row.title), icon: String(row.icon),
+    parentId: row.parent_id === null ? null : String(row.parent_id),
+    content: JSON.parse(String(row.content)) as Page['content'],
+    createdAt: String(row.created_at), updatedAt: String(row.updated_at),
+    isFavorite: Number(row.is_favorite) === 1, deletedAt: row.deleted_at === null ? null : String(row.deleted_at)
+  }
+}
+
+export const database = {
+  listPages: (includeDeleted = false): Page[] => run('Список страниц', () => {
+    const query = includeDeleted
+      ? 'SELECT * FROM pages ORDER BY updated_at DESC'
+      : 'SELECT * FROM pages WHERE deleted_at IS NULL ORDER BY updated_at DESC'
+    return (db.prepare(query).all() as Record<string, unknown>[]).map(toPage)
+  }),
+  listTrash: (): Page[] => run('Список корзины', () =>
+    (db.prepare('SELECT * FROM pages WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC').all() as Record<string, unknown>[]).map(toPage)
+  ),
+  getPage: (id: string): Page | null => run('Получение страницы', () => {
+    const row = db.prepare('SELECT * FROM pages WHERE id = ?').get(id) as Record<string, unknown> | undefined
+    return row ? toPage(row) : null
+  }),
+  createPage: (input: PageInput): Page => run('Создание страницы', () => {
+    const now = new Date().toISOString()
+    const page: Page = {
+      id: nanoid(), title: input.title || 'Без названия', icon: input.icon || '📄',
+      parentId: input.parentId ?? null, content: input.content ?? { type: 'doc', content: [{ type: 'paragraph' }] },
+      createdAt: now, updatedAt: now, isFavorite: false, deletedAt: null
+    }
+    db.prepare('INSERT INTO pages (id,title,icon,parent_id,content,created_at,updated_at,is_favorite) VALUES (?,?,?,?,?,?,?,0)')
+      .run(page.id, page.title, page.icon, page.parentId, JSON.stringify(page.content), now, now)
+    return page
+  }),
+  updatePage: (id: string, updates: Partial<Pick<Page, 'title' | 'icon' | 'parentId' | 'content' | 'isFavorite'>>): Page => run('Сохранение страницы', () => {
+    const existing = database.getPage(id)
+    if (!existing) throw new Error(`Страница ${id} не найдена`)
+    if (updates.parentId) {
+      let parent = database.getPage(updates.parentId)
+      while (parent) {
+        if (parent.id === id) throw new Error('Нельзя вложить страницу в саму себя или её дочернюю страницу')
+        parent = parent.parentId ? database.getPage(parent.parentId) : null
+      }
+    }
+    const next = { ...existing, ...updates, updatedAt: new Date().toISOString() }
+    db.prepare('UPDATE pages SET title=?,icon=?,parent_id=?,content=?,updated_at=?,is_favorite=? WHERE id=?')
+      .run(next.title, next.icon, next.parentId, JSON.stringify(next.content), next.updatedAt, Number(next.isFavorite), id)
+    if (updates.content) {
+      const insertHistory = db.prepare('INSERT INTO history (page_id,content,created_at) VALUES (?,?,?)')
+      insertHistory.run(id, JSON.stringify(existing.content), next.updatedAt)
+      db.prepare('DELETE FROM history WHERE page_id = ? AND id NOT IN (SELECT id FROM history WHERE page_id = ? ORDER BY id DESC LIMIT 50)').run(id, id)
+      rebuildIndex(id, updates.content)
+    }
+    return next
+  }),
+  deletePage: (id: string): void => run('Удаление страницы', () => {
+    db.prepare('UPDATE pages SET deleted_at=?, updated_at=? WHERE id=?').run(new Date().toISOString(), new Date().toISOString(), id)
+  }),
+  restorePage: (id: string): void => run('Восстановление страницы', () => {
+    db.prepare('UPDATE pages SET deleted_at=NULL, updated_at=? WHERE id=?').run(new Date().toISOString(), id)
+  }),
+  search: (query: string): Page[] => run('Поиск страниц', () => {
+    if (!query.trim()) return []
+    const needle = `%${query.replace(/[%_]/g, '\\$&')}%`
+    return (db.prepare(`SELECT DISTINCT p.* FROM pages p LEFT JOIN blocks_index b ON p.id=b.page_id
+      WHERE p.deleted_at IS NULL AND (p.title LIKE ? ESCAPE '\\' OR b.text LIKE ? ESCAPE '\\')
+      ORDER BY p.updated_at DESC LIMIT 100`).all(needle, needle) as Record<string, unknown>[]).map(toPage)
+  }),
+  getHistory: (id: string): Array<{ id: number; content: Page['content']; createdAt: string }> =>
+    run('История страницы', () => (db.prepare('SELECT id,content,created_at FROM history WHERE page_id=? ORDER BY id DESC LIMIT 50')
+      .all(id) as Array<{ id: number; content: string; created_at: string }>).map((row) => ({
+      id: row.id, content: JSON.parse(row.content) as Page['content'], createdAt: row.created_at
+    }))),
+  getSettings: (): AppSettings => run('Чтение настроек', () => {
+    const values = db.prepare('SELECT key,value FROM settings').all() as Array<{ key: string; value: string }>
+    return values.reduce<AppSettings>((settings, item) => {
+      settings[item.key] = JSON.parse(item.value) as AppSettings[string]
+      return settings
+    }, {})
+  }),
+  setSetting: (key: string, value: unknown): void => run('Сохранение настроек', () => {
+    db.prepare('INSERT INTO settings (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value')
+      .run(key, JSON.stringify(value))
+  })
+}
+
+function rebuildIndex(pageId: string, content: Page['content']): void {
+  db.prepare('DELETE FROM blocks_index WHERE page_id=?').run(pageId)
+  const insert = db.prepare('INSERT INTO blocks_index (page_id,block_id,type,text) VALUES (?,?,?,?)')
+  const walk = (node: unknown): void => {
+    if (!node || typeof node !== 'object') return
+    const value = node as { type?: string; attrs?: { id?: string }; text?: string; content?: unknown[] }
+    if (value.type) {
+      const text = value.text ?? (value.content ?? []).map((child) => {
+        if (child && typeof child === 'object' && 'text' in child) return String(child.text)
+        return ''
+      }).join(' ')
+      insert.run(pageId, value.attrs?.id ?? nanoid(), value.type, text)
+    }
+    value.content?.forEach(walk)
+  }
+  walk(content)
+}

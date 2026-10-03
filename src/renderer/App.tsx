@@ -5,6 +5,7 @@ import Sidebar from './components/Layout/Sidebar'
 import Topbar from './components/Layout/Topbar'
 import Outline from './components/Layout/Outline'
 import Editor from './components/Editor/Editor'
+import type { EditorHandle } from './components/Editor/Editor'
 import CommandPalette from './components/CommandPalette/CommandPalette'
 import Settings from './components/Settings'
 import { usePages } from './store/pages'
@@ -27,6 +28,8 @@ export default function App(): JSX.Element {
   const [shortcutsClosing, setShortcutsClosing] = useState(false)
   const shortcutsTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const importInput = useRef<HTMLInputElement>(null)
+  const editorRef = useRef<EditorHandle>(null)
+  const [tableToolsVisible, setTableToolsVisible] = useState(false)
 
   const closeShortcuts = useCallback((): void => {
     if (!showShortcuts || shortcutsClosing) return
@@ -59,6 +62,10 @@ export default function App(): JSX.Element {
   useEffect(() => {
     document.documentElement.lang = language
   }, [language])
+
+  useEffect(() => {
+    if (!page) setTableToolsVisible(false)
+  }, [page])
 
   useEffect(() => {
     const handler = (event: KeyboardEvent): void => {
@@ -108,7 +115,7 @@ export default function App(): JSX.Element {
                   }))
                 }} onBlur={(event) => { void update(page.id, { title: event.currentTarget.value }) }} />
               </div>
-              <Editor />
+              <Editor ref={editorRef} onTableActiveChange={setTableToolsVisible} />
             </section>
             <Outline />
           </div>
@@ -119,6 +126,10 @@ export default function App(): JSX.Element {
         <div className="floating-tools">
           <button className="icon-button" data-tooltip={translate(language, 'searchPages')} onClick={() => paletteOpen(true)}><Search size={16} /></button>
           <button className="icon-button" data-tooltip={translate(language, 'importMarkdown')} onClick={() => importInput.current?.click()}><FileUp size={16} /></button>
+          {tableToolsVisible && <>
+            <button className="table-action-button" data-tooltip={translate(language, 'addTableRow')} aria-label={translate(language, 'addTableRow')} onClick={() => editorRef.current?.addTableRow()}><span aria-hidden="true">＋</span>{translate(language, 'addTableRow')}</button>
+            <button className="table-action-button" data-tooltip={translate(language, 'addTableColumn')} aria-label={translate(language, 'addTableColumn')} onClick={() => editorRef.current?.addTableColumn()}><span aria-hidden="true">＋</span>{translate(language, 'addTableColumn')}</button>
+          </>}
           {!sidebarOpen && <button className="icon-button" data-tooltip={translate(language, 'showSidebar')} onClick={toggleSidebar}><PanelLeft size={16} /></button>}
           <button className="icon-button" data-tooltip={translate(language, 'shortcuts')} onClick={() => { if (shortcutsTimer.current) clearTimeout(shortcutsTimer.current); setShortcutsClosing(false); setShowShortcuts(true) }}><Keyboard size={16} /></button>
           <input ref={importInput} type="file" accept=".md,text/markdown" hidden onChange={(event) => { void handleImport(event) }} />

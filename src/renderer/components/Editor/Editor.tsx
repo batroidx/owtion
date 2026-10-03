@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -23,7 +23,16 @@ import { translate } from '../../lib/i18n'
 
 const lowlight = createLowlight(common)
 
-export default function Editor(): JSX.Element | null {
+export interface EditorHandle {
+  addTableRow(): void
+  addTableColumn(): void
+}
+
+interface EditorProps {
+  onTableActiveChange(active: boolean): void
+}
+
+const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onTableActiveChange }, ref): JSX.Element | null {
   const page = usePages((state) => state.currentPage)
   const setCurrentContent = usePages((state) => state.setCurrentContent)
   const updatePage = usePages((state) => state.update)
@@ -34,7 +43,6 @@ export default function Editor(): JSX.Element | null {
   const dropTarget = useRef<HTMLElement | null>(null)
   const [handle, setHandle] = useState<{ top: number; left: number; position: number; block: HTMLElement } | null>(null)
   const dragSource = useRef<{ position: number; node: ProseMirrorNode } | null>(null)
-  const [tableActive, setTableActive] = useState(false)
   const [codeBlockActive, setCodeBlockActive] = useState(false)
   const [codeLanguage, setCodeLanguage] = useState('plaintext')
 
@@ -96,10 +104,23 @@ export default function Editor(): JSX.Element | null {
     onSelectionUpdate: ({ editor: current }) => {
       const active = current.isActive('codeBlock')
       setCodeBlockActive(active)
-      setTableActive(current.isActive('table'))
+      onTableActiveChange(current.isActive('table'))
       if (active) setCodeLanguage(String(current.getAttributes('codeBlock').language ?? 'plaintext'))
     }
-  }, [page?.id])
+  }, [page?.id, onTableActiveChange])
+
+  useImperativeHandle(ref, () => ({
+    addTableRow: () => {
+      if (editor?.isActive('table')) editor.chain().focus().addRowAfter().run()
+    },
+    addTableColumn: () => {
+      if (editor?.isActive('table')) editor.chain().focus().addColumnAfter().run()
+    }
+  }), [editor])
+
+  useEffect(() => {
+    onTableActiveChange(false)
+  }, [onTableActiveChange, page?.id])
 
   useEffect(() => {
     editor?.view.dom.setAttribute('aria-label', translate(language, 'pageEditor'))
@@ -216,10 +237,6 @@ export default function Editor(): JSX.Element | null {
       onDrop={moveBlock}
     >
       <div className="editor-document">
-        {tableActive && editor && <div className="table-tools" role="toolbar" aria-label={translate(language, 'tableTools')}>
-          <button type="button" onClick={() => editor.chain().focus().addRowAfter().run()}>{translate(language, 'addTableRow')}</button>
-          <button type="button" onClick={() => editor.chain().focus().addColumnAfter().run()}>{translate(language, 'addTableColumn')}</button>
-        </div>}
         <EditorContent editor={editor} />
       </div>
       {codeBlockActive && editor && (
@@ -274,4 +291,6 @@ export default function Editor(): JSX.Element | null {
       )}
     </div>
   )
-}
+})
+
+export default Editor

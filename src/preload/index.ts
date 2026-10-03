@@ -22,7 +22,14 @@ const api: OwtionApi = {
   },
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),
-    set: (key, value) => ipcRenderer.invoke('settings:set', key, value)
+    set: (key, value) => ipcRenderer.invoke('settings:set', key, value),
+    reset: () => ipcRenderer.invoke('settings:reset')
+  },
+  database: {
+    reset: () => ipcRenderer.invoke('database:reset')
+  },
+  files: {
+    chooseImage: () => ipcRenderer.invoke('files:choose-image')
   },
   window: {
     minimize: () => ipcRenderer.send('window:minimize'),

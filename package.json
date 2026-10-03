@@ -1,6 +1,6 @@
 {
   "name": "owtion",
-  "version": "1.0.0",
+  "version": "0.1.2",
   "description": "Локальный блочный редактор заметок и баз знаний",
   "author": "Owtion",
   "license": "MIT",
@@ -76,13 +76,26 @@
     ],
     "npmRebuild": false,
     "win": {
+      "icon": "favicon/favicon.ico",
       "target": "nsis"
     },
     "mac": {
+      "icon": "favicon/favicon.png",
       "target": "dmg"
     },
     "linux": {
+      "icon": "favicon/favicon.png",
       "target": "AppImage"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "favicon/favicon.png",
+        "to": "favicon.png"
+      },
+      {
+        "from": "favicon/favicon.ico",
+        "to": "favicon.ico"
+      }
+    ]
   }
 }

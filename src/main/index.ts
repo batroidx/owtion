@@ -4,7 +4,7 @@ import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import Store from 'electron-store'
 import { registerIpc } from './ipc'
-import { initializeDatabase, closeDatabase } from './db'
+import { initializeDatabase, closeDatabase, database } from './db'
 import { buildApplicationMenu } from './menu'
 
 const preferences = new Store<{ launchAtLogin: boolean }>({
@@ -14,6 +14,7 @@ const preferences = new Store<{ launchAtLogin: boolean }>({
 const currentDirectory = dirname(fileURLToPath(import.meta.url))
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
+let activeLanguage: 'ru' | 'en' = 'ru'
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -29,6 +30,9 @@ function createWindow(): void {
     visualEffectState: process.platform === 'darwin' ? 'active' : undefined,
     backgroundMaterial: process.platform === 'win32' ? 'acrylic' : undefined,
     transparent: process.platform === 'darwin',
+    icon: process.platform === 'win32'
+      ? app.isPackaged ? join(process.resourcesPath, 'favicon.ico') : join(currentDirectory, '../../favicon/favicon.ico')
+      : undefined,
     title: 'Owtion',
     webPreferences: {
       preload: join(currentDirectory, '../preload/index.cjs'),
@@ -50,24 +54,40 @@ function createWindow(): void {
 }
 
 function createTray(): void {
-  const image = nativeImage.createFromDataURL(
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pV8AAAAASUVORK5CYII='
-  )
+  const iconPath = app.isPackaged
+    ? join(process.resourcesPath, 'favicon.png')
+    : join(currentDirectory, '../../favicon/favicon.png')
+  const image = nativeImage.createFromPath(iconPath)
   tray = new Tray(image)
   tray.setToolTip('Owtion')
-  tray.setContextMenu(Menu.buildFromTemplate([
-    { label: 'Открыть Owtion', click: () => mainWindow?.show() },
-    { label: 'Новая заметка', click: () => { mainWindow?.show(); mainWindow?.webContents.send('app:new-page') } },
-    { type: 'separator' },
-    { label: 'Выход', click: () => app.quit() }
-  ]))
+  tray.setContextMenu(Menu.buildFromTemplate(trayMenu()))
   tray.on('double-click', () => mainWindow?.show())
+}
+
+function trayMenu(): Electron.MenuItemConstructorOptions[] {
+  const labels = activeLanguage === 'ru'
+    ? { open: 'Открыть Owtion', newPage: 'Новая заметка', quit: 'Выход' }
+    : { open: 'Open Owtion', newPage: 'New note', quit: 'Quit' }
+  return [
+    { label: labels.open, click: () => mainWindow?.show() },
+    { label: labels.newPage, click: () => { mainWindow?.show(); mainWindow?.webContents.send('app:new-page') } },
+    { type: 'separator' },
+    { label: labels.quit, click: () => app.quit() }
+  ]
 }
 
 app.whenReady().then(async () => {
   await initializeDatabase()
-  registerIpc(() => mainWindow, preferences)
-  buildApplicationMenu(() => mainWindow)
+  const savedLanguage = database.getSettings().language
+  const menuLanguage = savedLanguage === 'en' ? 'en' : 'ru'
+  const updateMenuLanguage = (language: 'ru' | 'en'): void => {
+    activeLanguage = language
+    buildApplicationMenu(() => mainWindow, language)
+    tray?.setContextMenu(Menu.buildFromTemplate(trayMenu()))
+  }
+  activeLanguage = menuLanguage
+  registerIpc(() => mainWindow, preferences, updateMenuLanguage)
+  buildApplicationMenu(() => mainWindow, menuLanguage)
   createWindow()
   createTray()
   const launchAtLogin = preferences.get('launchAtLogin')

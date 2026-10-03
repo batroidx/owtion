@@ -1,4 +1,5 @@
 import type { JsonNode } from '../../shared/types'
+import type { Language } from './i18n'
 
 function inline(node: JsonNode): string {
   if (node.type === 'text') {
@@ -15,9 +16,9 @@ function inline(node: JsonNode): string {
   return (node.content ?? []).map(inline).join('')
 }
 
-function block(node: JsonNode, depth = 0): string {
+function block(node: JsonNode, depth = 0, toggleLabel = 'Hidden block'): string {
   const children = node.content ?? []
-  const inner = children.map((child) => block(child, depth)).join('\n')
+  const inner = children.map((child) => block(child, depth, toggleLabel)).join('\n')
   switch (node.type) {
     case 'heading': return `${'#'.repeat(Number(node.attrs?.level ?? 1))} ${inline(node)}`
     case 'paragraph': return inline(node)
@@ -36,15 +37,16 @@ function block(node: JsonNode, depth = 0): string {
       const line = `| ${cells.map((cell) => (cell.content ?? []).map(inline).join('')).join(' | ')} |`
       return rowIndex === 0 ? `${line}\n| ${cells.map(() => '---').join(' | ')} |` : line
     }).join('\n')
-    case 'toggle': return `<details>\n<summary>Скрытый блок</summary>\n\n${inner}\n\n</details>`
+    case 'toggle': return `<details>\n<summary>${toggleLabel}</summary>\n\n${inner}\n\n</details>`
     case 'callout': return `> **${String(node.attrs?.kind ?? 'info').toUpperCase()}**\n> ${inner.replace(/\n/g, '\n> ')}`
     case 'doc': return inner
     default: return inline(node) || inner
   }
 }
 
-export function exportMarkdown(title: string, content: JsonNode): string {
-  return `# ${title}\n\n${(content.content ?? []).map((node) => block(node)).filter(Boolean).join('\n\n')}\n`
+export function exportMarkdown(title: string, content: JsonNode, language: Language = 'ru'): string {
+  const toggleLabel = language === 'ru' ? 'Скрытый блок' : 'Hidden block'
+  return `# ${title}\n\n${(content.content ?? []).map((node) => block(node, 0, toggleLabel)).filter(Boolean).join('\n\n')}\n`
 }
 
 export function importMarkdown(markdown: string): JsonNode {
@@ -70,8 +72,8 @@ function escapeHtml(value: string): string {
   })[character] ?? character)
 }
 
-function html(node: JsonNode): string {
-  const children = (node.content ?? []).map(html).join('')
+function html(node: JsonNode, toggleLabel: string): string {
+  const children = (node.content ?? []).map((child) => html(child, toggleLabel)).join('')
   switch (node.type) {
     case 'text': {
       let value = escapeHtml(node.text ?? '')
@@ -102,12 +104,13 @@ function html(node: JsonNode): string {
     case 'tableRow': return `<tr>${children}</tr>`
     case 'tableHeader': return `<th>${children}</th>`
     case 'tableCell': return `<td>${children}</td>`
-    case 'toggle': return `<details><summary>Скрытый блок</summary>${children}</details>`
+    case 'toggle': return `<details><summary>${escapeHtml(toggleLabel)}</summary>${children}</details>`
     case 'callout': return `<aside class="callout ${escapeHtml(String(node.attrs?.kind ?? 'info'))}">${children}</aside>`
     default: return children
   }
 }
 
-export function exportHtml(title: string, content: JsonNode): string {
-  return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>body{font:16px/1.6 system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 20px}pre,aside{padding:12px;background:#f5f5f7;border-radius:6px}blockquote{border-left:3px solid #ddd;padding-left:14px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:7px}</style></head><body><h1>${escapeHtml(title)}</h1>${html(content)}</body></html>`
+export function exportHtml(title: string, content: JsonNode, language: Language = 'ru'): string {
+  const toggleLabel = language === 'ru' ? 'Скрытый блок' : 'Hidden block'
+  return `<!doctype html><html lang="${language}"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>body{font:16px/1.6 system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 20px}pre,aside{padding:12px;background:#f5f5f7;border-radius:6px}blockquote{border-left:3px solid #ddd;padding-left:14px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:7px}</style></head><body><h1>${escapeHtml(title)}</h1>${html(content, toggleLabel)}</body></html>`
 }

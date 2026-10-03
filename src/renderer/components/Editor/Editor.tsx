@@ -11,12 +11,15 @@ import TableRow from '@tiptap/extension-table-row'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
 import { common, createLowlight } from 'lowlight'
 import { Callout } from './extensions/Callout'
 import { Toggle } from './extensions/Toggle'
 import { Embed } from './extensions/Embed'
 import { SlashCommand } from './extensions/SlashCommand'
 import { usePages } from '../../store/pages'
+import { useUi } from '../../store/ui'
+import { translate } from '../../lib/i18n'
 
 const lowlight = createLowlight(common)
 
@@ -24,12 +27,14 @@ export default function Editor(): JSX.Element | null {
   const page = usePages((state) => state.currentPage)
   const setCurrentContent = usePages((state) => state.setCurrentContent)
   const updatePage = usePages((state) => state.update)
+  const language = useUi((state) => state.language)
   const wrapper = useRef<HTMLDivElement>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hideHandleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dropTarget = useRef<HTMLElement | null>(null)
   const [handle, setHandle] = useState<{ top: number; left: number; position: number; block: HTMLElement } | null>(null)
-  const [dragPosition, setDragPosition] = useState<number | null>(null)
+  const dragSource = useRef<{ position: number; node: ProseMirrorNode } | null>(null)
+  const [tableActive, setTableActive] = useState(false)
   const [codeBlockActive, setCodeBlockActive] = useState(false)
   const [codeLanguage, setCodeLanguage] = useState('plaintext')
 
@@ -55,7 +60,7 @@ export default function Editor(): JSX.Element | null {
     extensions,
     content: page?.content,
     editorProps: {
-      attributes: { class: 'tiptap', spellcheck: 'true', 'aria-label': 'Редактор страницы' },
+      attributes: { class: 'tiptap', spellcheck: 'true', 'aria-label': translate(language, 'pageEditor') },
       handleKeyDown: (_view, event) => {
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'b') {
           editor?.chain().focus().toggleBold().run()
@@ -91,9 +96,17 @@ export default function Editor(): JSX.Element | null {
     onSelectionUpdate: ({ editor: current }) => {
       const active = current.isActive('codeBlock')
       setCodeBlockActive(active)
+      setTableActive(current.isActive('table'))
       if (active) setCodeLanguage(String(current.getAttributes('codeBlock').language ?? 'plaintext'))
     }
   }, [page?.id])
+
+  useEffect(() => {
+    editor?.view.dom.setAttribute('aria-label', translate(language, 'pageEditor'))
+    editor?.view.dom.querySelectorAll('details[data-toggle] > summary').forEach((summary) => {
+      summary.setAttribute('aria-label', translate(language, 'toggleContent'))
+    })
+  }, [editor, language])
 
   useEffect(() => () => {
     if (saveTimer.current) clearTimeout(saveTimer.current)
@@ -122,7 +135,9 @@ export default function Editor(): JSX.Element | null {
     const rect = block.getBoundingClientRect()
     const wrapperRect = wrapper.current.getBoundingClientRect()
     const scrollTop = wrapper.current.scrollTop
-    const position = editor.view.posAtDOM(block, 0)
+    const domPosition = editor.view.posAtDOM(block, 0)
+    const resolvedPosition = editor.state.doc.resolve(domPosition)
+    const position = resolvedPosition.depth > 0 ? resolvedPosition.before(1) : 0
     setHandle((current) => current?.block === block ? current : {
       top: rect.top - wrapperRect.top + scrollTop,
       left: Math.max(4, rect.left - wrapperRect.left - 48),
@@ -143,28 +158,35 @@ export default function Editor(): JSX.Element | null {
 
   const moveBlock = (event: React.DragEvent<HTMLDivElement>): void => {
     event.preventDefault()
-    if (!editor || dragPosition === null) return
+    if (!editor || !dragSource.current) return
     const target = event.target
     if (!(target instanceof HTMLElement)) return
     const block = target.closest<HTMLElement>('.tiptap > *')
     if (!block) return
     const rect = block.getBoundingClientRect()
     const after = event.clientY > rect.top + rect.height / 2
-    const destination = editor.view.posAtDOM(block, 0) + (after ? editor.state.doc.nodeAt(editor.view.posAtDOM(block, 0))?.nodeSize ?? 0 : 0)
-    const source = editor.state.doc.nodeAt(dragPosition)
-    if (!source || destination === dragPosition || destination === dragPosition + source.nodeSize) return
-    const transaction = editor.state.tr.delete(dragPosition, dragPosition + source.nodeSize)
-    const adjusted = destination > dragPosition ? destination - source.nodeSize : destination
-    transaction.insert(adjusted, source)
+    const targetDomPosition = editor.view.posAtDOM(block, 0)
+    const targetResolved = editor.state.doc.resolve(targetDomPosition)
+    if (targetResolved.depth === 0) return
+    const targetPosition = targetResolved.before(1)
+    const targetNode = editor.state.doc.nodeAt(targetPosition)
+    if (!targetNode) return
+    const source = dragSource.current
+    if (source.position === targetPosition) return
+    const destination = targetPosition + (after ? targetNode.nodeSize : 0)
+    const transaction = editor.state.tr.delete(source.position, source.position + source.node.nodeSize)
+    const adjusted = transaction.mapping.map(destination, after ? -1 : 1)
+    if (adjusted < 0 || adjusted > transaction.doc.content.size) return
+    transaction.insert(adjusted, source.node)
     editor.view.dispatch(transaction)
-    setDragPosition(null)
+    dragSource.current = null
     block.classList.remove('block-drop-before', 'block-drop-after')
     dropTarget.current = null
   }
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>): void => {
     event.preventDefault()
-    if (dragPosition === null || !(event.target instanceof HTMLElement)) return
+    if (!dragSource.current || !(event.target instanceof HTMLElement)) return
     const target = event.target.closest<HTMLElement>('.tiptap > *')
     if (!target) return
     if (dropTarget.current && dropTarget.current !== target) dropTarget.current.classList.remove('block-drop-before', 'block-drop-after')
@@ -194,12 +216,16 @@ export default function Editor(): JSX.Element | null {
       onDrop={moveBlock}
     >
       <div className="editor-document">
+        {tableActive && editor && <div className="table-tools" role="toolbar" aria-label={translate(language, 'tableTools')}>
+          <button type="button" onClick={() => editor.chain().focus().addRowAfter().run()}>{translate(language, 'addTableRow')}</button>
+          <button type="button" onClick={() => editor.chain().focus().addColumnAfter().run()}>{translate(language, 'addTableColumn')}</button>
+        </div>}
         <EditorContent editor={editor} />
       </div>
       {codeBlockActive && editor && (
         <div className="language-popover">
           <select
-            aria-label="Язык блока кода"
+            aria-label={translate(language, 'codeLanguage')}
             value={codeLanguage}
             onChange={(event) => {
               const language = event.currentTarget.value
@@ -220,15 +246,20 @@ export default function Editor(): JSX.Element | null {
           onMouseEnter={cancelHandleHide}
           onMouseLeave={scheduleHandleHide}
         >
-          <button data-tooltip="Добавить блок" aria-label="Добавить блок" onClick={() => editor.chain().focus().insertContent('/').run()}>+</button>
+          <button data-tooltip={translate(language, 'addBlock')} aria-label={translate(language, 'addBlock')} onClick={() => editor.chain().focus().insertContent('/').run()}>+</button>
           <button
-            data-tooltip="Переместить блок"
-            aria-label="Переместить блок"
+            data-tooltip={translate(language, 'moveBlock')}
+            aria-label={translate(language, 'moveBlock')}
             draggable
             onDragStart={(event) => {
-              setDragPosition(handle.position)
+              const source = editor.state.doc.nodeAt(handle.position)
+              if (!source) {
+                event.preventDefault()
+                return
+              }
+              dragSource.current = { position: handle.position, node: source }
               event.dataTransfer.effectAllowed = 'move'
-              event.dataTransfer.setData('text/plain', handle.position.toString())
+              event.dataTransfer.setData('application/x-owtion-block', 'block')
               const preview = handle.block.cloneNode(true)
               if (preview instanceof HTMLElement) {
                 preview.classList.add('block-drag-preview')
@@ -237,7 +268,7 @@ export default function Editor(): JSX.Element | null {
                 requestAnimationFrame(() => preview.remove())
               }
             }}
-            onDragEnd={() => { setDragPosition(null); clearDropTarget() }}
+            onDragEnd={() => { dragSource.current = null; clearDropTarget() }}
           >⠿</button>
         </div>
       )}

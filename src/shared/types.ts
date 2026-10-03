@@ -51,6 +51,13 @@ export interface OwtionApi {
   settings: {
     get(): Promise<AppSettings>
     set(key: string, value: unknown): Promise<void>
+    reset(): Promise<void>
+  }
+  database: {
+    reset(): Promise<void>
+  }
+  files: {
+    chooseImage(): Promise<string | null>
   }
   window: {
     minimize(): void

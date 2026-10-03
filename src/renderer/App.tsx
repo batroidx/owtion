@@ -52,15 +52,19 @@ export default function App(): JSX.Element {
     })
     const removeNew = window.owtion.on('app:new-page', () => { void usePages.getState().create() })
     const removePalette = window.owtion.on('app:command-palette', () => paletteOpen(true))
-    const removeExport = window.owtion.on('app:export', () => document.querySelector<HTMLButtonElement>('[aria-label="Дополнительные действия"]')?.click())
+    const removeExport = window.owtion.on('app:export', () => document.querySelector<HTMLButtonElement>('#more-actions-button')?.click())
     return () => { removeNew(); removePalette(); removeExport() }
   }, [load, paletteOpen])
+
+  useEffect(() => {
+    document.documentElement.lang = language
+  }, [language])
 
   useEffect(() => {
     const handler = (event: KeyboardEvent): void => {
       const mod = event.ctrlKey || event.metaKey
       if (mod && event.key.toLowerCase() === 'k') { event.preventDefault(); paletteOpen(true) }
-      else if (mod && event.key.toLowerCase() === 'p') { event.preventDefault(); paletteOpen(true); document.querySelector<HTMLInputElement>('.command-search input')?.focus() }
+      else if (mod && event.key.toLowerCase() === 'p') { event.preventDefault(); paletteOpen(true); document.querySelector<HTMLInputElement>('.titlebar-search input')?.focus() }
       else if (mod && event.key.toLowerCase() === 'n') { event.preventDefault(); void create() }
       else if (mod && event.key === '\\') { event.preventDefault(); toggleSidebar() }
       else if (mod && event.shiftKey && event.key.toLowerCase() === 'd') { event.preventDefault(); toggleTheme() }
@@ -125,12 +129,12 @@ export default function App(): JSX.Element {
     <Settings />
     {showShortcuts && <div className={`modal-backdrop ${shortcutsClosing ? 'is-closing' : ''}`} onMouseDown={(event: MouseEvent<HTMLDivElement>) => { if (event.target === event.currentTarget) closeShortcuts() }}>
       <section className="shortcuts-modal" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title"><header><h2 id="shortcuts-title">{translate(language, 'shortcuts')}</h2><button className="icon-button" onClick={closeShortcuts}>×</button></header>
-        <div className="shortcut-row"><span>{language === 'ru' ? 'Палитра команд' : 'Command palette'}</span><kbd>Ctrl / ⌘ K</kbd></div>
+        <div className="shortcut-row"><span>{translate(language, 'commandPalette')}</span><kbd>Ctrl / ⌘ K</kbd></div>
         <div className="shortcut-row"><span>{translate(language, 'searchPages')}</span><kbd>Ctrl / ⌘ P</kbd></div>
         <div className="shortcut-row"><span>{translate(language, 'newPage')}</span><kbd>Ctrl / ⌘ N</kbd></div>
         <div className="shortcut-row"><span>{translate(language, 'hideSidebar')}</span><kbd>Ctrl / ⌘ \</kbd></div>
-        <div className="shortcut-row"><span>{language === 'ru' ? 'Тёмная тема' : 'Dark theme'}</span><kbd>Ctrl / ⌘ ⇧ D</kbd></div>
-        <div className="shortcut-row"><span>{language === 'ru' ? 'Полужирный / курсив / подчёркнутый' : 'Bold / italic / underline'}</span><kbd>Ctrl / ⌘ B / I / U</kbd></div>
+        <div className="shortcut-row"><span>{translate(language, 'darkTheme')}</span><kbd>Ctrl / ⌘ ⇧ D</kbd></div>
+        <div className="shortcut-row"><span>{translate(language, 'textFormatting')}</span><kbd>Ctrl / ⌘ B / I / U</kbd></div>
       </section>
     </div>}
   </div>

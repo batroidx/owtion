@@ -192,6 +192,18 @@ export const database = {
     db.prepare('INSERT INTO settings (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value')
       .run(key, JSON.stringify(value))
   }),
+  reset: (): void => run('Сброс базы данных', () => {
+    db.exec('BEGIN IMMEDIATE')
+    try {
+      db.exec('DELETE FROM history; DELETE FROM blocks_index; DELETE FROM pages; DELETE FROM groups; COMMIT')
+    } catch (error) {
+      db.exec('ROLLBACK')
+      throw error
+    }
+  }),
+  resetSettings: (): void => run('Сброс настроек', () => {
+    db.prepare('DELETE FROM settings').run()
+  }),
   listGroups: (): PageGroup[] => run('Список групп', () =>
     (db.prepare('SELECT id,name,icon,created_at FROM groups ORDER BY created_at').all() as Array<Record<string, unknown>>)
       .map((row) => ({ id: String(row.id), name: String(row.name), icon: String(row.icon), createdAt: String(row.created_at) }))

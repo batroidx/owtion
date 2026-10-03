@@ -40,30 +40,30 @@ export default function Topbar(): JSX.Element | null {
   }, [closeHistory, historyOpen])
   if (!page) return null
   const saveMarkdown = (): void => {
-    const blob = new Blob([exportMarkdown(page.title, page.content)], { type: 'text/markdown;charset=utf-8' })
+    const blob = new Blob([exportMarkdown(page.title, page.content, language)], { type: 'text/markdown;charset=utf-8' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `${page.title || 'Заметка'}.md`
+    link.download = `${page.title || translate(language, 'untitledPage')}.md`
     link.click()
     URL.revokeObjectURL(link.href)
   }
   const saveHtml = (): void => {
-    const blob = new Blob([exportHtml(page.title, page.content)], { type: 'text/html;charset=utf-8' })
+    const blob = new Blob([exportHtml(page.title, page.content, language)], { type: 'text/html;charset=utf-8' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `${page.title || 'Заметка'}.html`
+    link.download = `${page.title || translate(language, 'untitledPage')}.html`
     link.click()
     URL.revokeObjectURL(link.href)
   }
   return (
     <header className="topbar">
-      <div className="breadcrumbs"><span>{page.title || 'Без названия'}</span></div>
+      <div className="breadcrumbs"><span>{page.title || translate(language, 'untitledPage')}</span></div>
       <div className="topbar-actions">
         <button className={`icon-button ${page.isFavorite ? 'favorite-active' : ''}`} data-tooltip={page.isFavorite ? translate(language, 'removeFavorite') : translate(language, 'favorite')} aria-label={page.isFavorite ? translate(language, 'removeFavorite') : translate(language, 'favorite')} onClick={() => void update(page.id, { isFavorite: !page.isFavorite })}><Star size={17} /></button>
-        <button className="icon-button" data-tooltip={translate(language, 'share')} aria-label={translate(language, 'share')} onClick={() => window.alert(language === 'ru' ? 'Совместная работа недоступна офлайн.' : 'Collaboration is unavailable offline.')}><Share2 size={16} /></button>
+        <button className="icon-button" data-tooltip={translate(language, 'share')} aria-label={translate(language, 'share')} onClick={() => window.alert(translate(language, 'shareOffline'))}><Share2 size={16} /></button>
         <button className="icon-button" data-tooltip={translate(language, 'outline')} aria-label={translate(language, 'outline')} onClick={toggleOutline}><PanelRight size={16} /></button>
         <div className="menu-anchor">
-          <button className="icon-button" data-tooltip={translate(language, 'more')} aria-label={translate(language, 'more')} onClick={() => setMenuOpen(!menuOpen)}><MoreHorizontal size={19} /></button>
+          <button id="more-actions-button" className="icon-button" data-tooltip={translate(language, 'more')} aria-label={translate(language, 'more')} onClick={() => setMenuOpen(!menuOpen)}><MoreHorizontal size={19} /></button>
           {menuOpen && <div className="context-menu">
             <button onClick={() => { void create({ title: `${page.title}${language === 'ru' ? ' — копия' : ' — copy'}`, content: page.content }); setMenuOpen(false) }}><Copy size={14} /> {translate(language, 'duplicate')}</button>
             <button onClick={() => { saveMarkdown(); setMenuOpen(false) }}><FileDown size={14} /> {translate(language, 'exportMarkdown')}</button>
@@ -75,10 +75,10 @@ export default function Topbar(): JSX.Element | null {
       </div>
       {historyOpen && <div className={`modal-backdrop ${historyClosing ? 'is-closing' : ''}`} onMouseDown={(event) => { if (event.target === event.currentTarget) closeHistory() }}>
         <section className="settings-modal history-modal" role="dialog" aria-modal="true" aria-labelledby="history-title">
-          <header><h2 id="history-title">{translate(language, 'history')}</h2><button className="icon-button" onClick={closeHistory}>×</button></header>
+          <header><h2 id="history-title">{translate(language, 'history')}</h2><button className="icon-button" aria-label={translate(language, 'close')} onClick={closeHistory}>×</button></header>
           {history.length ? history.map((version) => <div className="history-row" key={version.id}>
             <span>{new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(version.createdAt))}</span>
-            <button onClick={async () => { await update(page.id, { content: version.content }); closeHistory() }}>Восстановить</button>
+            <button onClick={async () => { await update(page.id, { content: version.content }); closeHistory() }}>{translate(language, 'restore')}</button>
           </div>) : <p className="settings-note">{translate(language, 'historyEmpty')}</p>}
         </section>
       </div>}

@@ -9,6 +9,6 @@ export const Toggle = Node.create({
     return [{ tag: 'details[data-toggle]' }]
   },
   renderHTML({ HTMLAttributes }) {
-    return ['details', mergeAttributes(HTMLAttributes, { 'data-toggle': 'true', class: 'toggle-block' }), ['summary', 'Скрытый блок'], ['div', { class: 'toggle-content' }, 0]]
+    return ['details', mergeAttributes(HTMLAttributes, { 'data-toggle': 'true', class: 'toggle-block' }), ['summary', { 'aria-label': 'Toggle content' }], ['div', { class: 'toggle-content' }, 0]]
   }
 })

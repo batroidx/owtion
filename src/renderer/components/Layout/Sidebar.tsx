@@ -54,7 +54,7 @@ function TreeRow({ page, pages, depth, onDropPage, onContextMenu }: TreeRowProps
           if (id && id !== page.id) onDropPage(id, page)
         }}
       >
-        {children.length > 0 && <button className="tree-toggle" onClick={() => setExpanded(!expanded)} aria-label="Toggle nested pages"><ChevronDown size={13} className={!expanded ? 'collapsed' : ''} /></button>}
+        {children.length > 0 && <button className="tree-toggle" onClick={() => setExpanded(!expanded)} aria-label={translate(useUi.getState().language, 'toggleNestedPages')}><ChevronDown size={13} className={!expanded ? 'collapsed' : ''} /></button>}
         <button className="page-row-main" onClick={() => void select(page.id)}><span className="page-label">{page.title}</span></button>
       </div>
       {expanded && children.map((child) => (
@@ -161,7 +161,6 @@ export default function Sidebar({ isOpen }: SidebarProps): JSX.Element {
   return (
     <>
       <aside className={`sidebar ${isOpen ? 'is-open' : 'is-closed'}`} aria-hidden={!isOpen}>
-        <button className="new-page-button" onClick={() => void create()}><FilePlus2 size={15} /> {translate(language, 'newPage')}</button>
         <div className="sidebar-content">
           {favorites.length > 0 && <section className="sidebar-section">
             <h2><Star size={13} /> {translate(language, 'favorites')}</h2>

@@ -24,6 +24,7 @@ export default defineConfig({
   renderer: {
     resolve: { alias: { '@': resolve(__dirname, 'src/renderer') } },
     plugins: [react()],
+    publicDir: resolve(__dirname, 'favicon'),
     server: { host: '127.0.0.1' },
     build: {
       rollupOptions: {

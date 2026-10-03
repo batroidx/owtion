@@ -4,6 +4,7 @@ import tippy, { type Instance } from 'tippy.js'
 import Fuse from 'fuse.js'
 import type { Editor } from '@tiptap/core'
 import { useUi } from '../../../store/ui'
+import { translate } from '../../../lib/i18n'
 
 interface SlashItem {
   title: string
@@ -27,10 +28,9 @@ const items: SlashItem[] = [
   { title: 'Цитата', description: 'Блок цитирования', aliases: ['quote'], type: 'blockquote', icon: '❝', shortcut: '> ', action: (e, r) => e.chain().focus().deleteRange(r).toggleBlockquote().run() },
   { title: 'Код', description: 'Блок кода с подсветкой', aliases: ['code'], type: 'codeBlock', icon: '</>', shortcut: '```', action: (e, r) => e.chain().focus().deleteRange(r).setCodeBlock({ language: 'plaintext' }).run() },
   { title: 'Разделитель', description: 'Горизонтальная линия', aliases: ['divider', 'hr'], type: 'divider', icon: '―', shortcut: '---', action: (e, r) => e.chain().focus().deleteRange(r).setHorizontalRule().run() },
-  { title: 'Изображение', description: 'Вставить изображение по ссылке', aliases: ['image', 'photo'], type: 'image', icon: '▧', shortcut: '', action: (e, r) => { const src = window.prompt('Ссылка на изображение'); if (src) e.chain().focus().deleteRange(r).setImage({ src }).run() } },
-  { title: 'Callout', description: 'Информационный, предупредительный или важный блок', aliases: ['info', 'warning', 'success', 'danger'], type: 'callout', icon: 'ⓘ', shortcut: '', action: (e, r) => { const requested = window.prompt('Тип блока: info, warning, success или danger', 'info'); if (requested !== null) { const kind = ['info', 'warning', 'success', 'danger'].includes(requested.trim().toLowerCase()) ? requested.trim().toLowerCase() : 'info'; e.chain().focus().deleteRange(r).insertContent({ type: 'callout', attrs: { kind }, content: [{ type: 'paragraph' }] }).run() } } },
+  { title: 'Изображение', description: 'Вставить изображение с устройства', aliases: ['image', 'photo', 'картинка'], type: 'image', icon: '▧', shortcut: '', action: (e, r) => { void insertImage(e, r) } },
   { title: 'Таблица', description: 'Таблица 3 × 3', aliases: ['table'], type: 'table', icon: '▦', shortcut: '', action: (e, r) => e.chain().focus().deleteRange(r).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
-  { title: 'Embed', description: 'Встроенная ссылка', aliases: ['link', 'embed'], type: 'embed', icon: '↗', shortcut: '', action: (e, r) => { const url = window.prompt('Введите URL'); if (url) e.chain().focus().deleteRange(r).insertContent({ type: 'embed', attrs: { url, title: url } }).run() } }
+  { title: 'Embed', description: 'Встроенная ссылка', aliases: ['link', 'embed'], type: 'embed', icon: '↗', shortcut: '', action: (e, r) => { const url = window.prompt(translate(useUi.getState().language, 'embedUrlPrompt')); if (url) e.chain().focus().deleteRange(r).insertContent({ type: 'embed', attrs: { url, title: url } }).run() } }
 ]
 
 const englishCommands: Record<string, [string, string]> = {
@@ -43,12 +43,20 @@ const englishCommands: Record<string, [string, string]> = {
   'Чек-лист': ['To-do list', 'Checklist with checkboxes'],
   'Toggle': ['Toggle', 'Collapsible block'],
   'Цитата': ['Quote', 'Block quote'],
-  'Callout': ['Callout', 'Highlighted information block'],
   'Разделитель': ['Divider', 'Horizontal divider'],
-  'Изображение': ['Image', 'Insert an image from a URL'],
+  'Изображение': ['Image', 'Choose an image from this device'],
   'Таблица': ['Table', '3 × 3 table'],
   'Код': ['Code', 'Syntax-highlighted code block'],
   'Embed': ['Embed', 'Link preview']
+}
+
+async function insertImage(editor: Editor, range: { from: number; to: number }): Promise<void> {
+  try {
+    const source = await window.owtion.files.chooseImage()
+    if (source) editor.chain().focus().deleteRange(range).setImage({ src: source }).run()
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : String(error))
+  }
 }
 
 function localized(item: SlashItem): { title: string; description: string } {
@@ -87,11 +95,13 @@ class SlashMenu {
   }
 
   onKeyDown({ event }: { event: KeyboardEvent }): boolean {
-    if (event.key === 'ArrowDown') { this.selectedIndex += 1; this.render(this.current!); return true }
-    if (event.key === 'ArrowUp') { this.selectedIndex -= 1; this.render(this.current!); return true }
+    if (!this.current) return false
+    const visible = this.filtered(this.current.query)
+    if (!visible.length) return event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter'
+    if (event.key === 'ArrowDown') { this.selectedIndex = (this.selectedIndex + 1) % visible.length; this.render(this.current); return true }
+    if (event.key === 'ArrowUp') { this.selectedIndex = (this.selectedIndex - 1 + visible.length) % visible.length; this.render(this.current); return true }
     if (event.key === 'Enter') {
-      const visible = this.filtered(this.current?.query ?? '')
-      visible[((this.selectedIndex % visible.length) + visible.length) % visible.length]?.action(this.current!.editor, this.current!.range)
+      visible[this.selectedIndex]?.action(this.current.editor, this.current.range)
       return true
     }
     if (event.key === 'Escape') { this.popup[0]?.hide(); return true }
@@ -114,10 +124,12 @@ class SlashMenu {
     if (!this.component) return
     const visible = this.filtered(props.query)
     this.component.replaceChildren()
+    if (this.selectedIndex >= visible.length) this.selectedIndex = 0
     visible.forEach((item, index) => {
       const text = localized(item)
       const button = document.createElement('button')
       button.className = index === this.selectedIndex ? 'slash-item active' : 'slash-item'
+      button.dataset.index = String(index)
       const icon = document.createElement('span')
       icon.className = 'slash-icon'
       icon.textContent = item.icon
@@ -137,7 +149,8 @@ class SlashMenu {
       })
       this.component?.append(button)
     })
-    if (visible.length === 0) this.component.textContent = 'Команды не найдены'
+    if (visible.length) this.component.querySelector<HTMLElement>(`[data-index="${this.selectedIndex}"]`)?.scrollIntoView({ block: 'nearest' })
+    if (visible.length === 0) this.component.textContent = useUi.getState().language === 'ru' ? 'Команды не найдены' : 'No commands found'
   }
 }
 

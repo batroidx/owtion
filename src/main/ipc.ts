@@ -1,9 +1,15 @@
-import { app, ipcMain, type BrowserWindow } from 'electron'
+import { app, dialog, ipcMain, type BrowserWindow } from 'electron'
+import { readFile } from 'node:fs/promises'
+import { extname } from 'node:path'
 import type Store from 'electron-store'
 import { database } from './db'
 import type { AppSettings, PageInput } from '../shared/types'
 
-export function registerIpc(getWindow: () => BrowserWindow | null, preferences: Store<{ launchAtLogin: boolean }>): void {
+export function registerIpc(
+  getWindow: () => BrowserWindow | null,
+  preferences: Store<{ launchAtLogin: boolean }>,
+  updateMenuLanguage: (language: 'ru' | 'en') => void
+): void {
   ipcMain.handle('pages:list', () => database.listPages())
   ipcMain.handle('pages:trash', () => database.listTrash())
   ipcMain.handle('pages:get', (_event, id: string) => database.getPage(id))
@@ -24,7 +30,32 @@ export function registerIpc(getWindow: () => BrowserWindow | null, preferences: 
       app.setLoginItemSettings({ openAtLogin: value })
     } else {
       database.setSetting(key, value)
+      if (key === 'language' && (value === 'ru' || value === 'en')) updateMenuLanguage(value)
     }
+  })
+  ipcMain.handle('settings:reset', () => {
+    database.resetSettings()
+    preferences.set('launchAtLogin', false)
+    app.setLoginItemSettings({ openAtLogin: false })
+    updateMenuLanguage('ru')
+  })
+  ipcMain.handle('database:reset', () => database.reset())
+  ipcMain.handle('files:choose-image', async () => {
+    const window = getWindow()
+    const filterName = database.getSettings().language === 'en' ? 'Images' : 'Изображения'
+    const filters = [{ name: filterName, extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'] }]
+    const result = window
+      ? await dialog.showOpenDialog(window, { properties: ['openFile'], filters })
+      : await dialog.showOpenDialog({ properties: ['openFile'], filters })
+    const path = result.filePaths[0]
+    if (result.canceled || !path) return null
+    const extension = extname(path).toLowerCase()
+    const mime = extension === '.jpg' || extension === '.jpeg' ? 'image/jpeg'
+      : extension === '.svg' ? 'image/svg+xml'
+        : extension === '.gif' ? 'image/gif'
+          : extension === '.webp' ? 'image/webp'
+            : extension === '.bmp' ? 'image/bmp' : 'image/png'
+    return `data:${mime};base64,${(await readFile(path)).toString('base64')}`
   })
   ipcMain.on('window:minimize', () => getWindow()?.minimize())
   ipcMain.on('window:toggle-maximize', () => {

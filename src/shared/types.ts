@@ -11,6 +11,7 @@ export interface Page {
   title: string
   icon: string
   parentId: string | null
+  groupId: string | null
   content: JsonNode
   createdAt: string
   updatedAt: string
@@ -18,7 +19,14 @@ export interface Page {
   deletedAt: string | null
 }
 
-export type PageInput = Partial<Pick<Page, 'title' | 'icon' | 'parentId' | 'content'>>
+export interface PageGroup {
+  id: string
+  name: string
+  icon: string
+  createdAt: string
+}
+
+export type PageInput = Partial<Pick<Page, 'title' | 'icon' | 'parentId' | 'groupId' | 'content'>>
 export type AppSettings = Record<string, string | number | boolean | null>
 
 export interface OwtionApi {
@@ -28,11 +36,17 @@ export interface OwtionApi {
     trash(): Promise<Page[]>
     get(id: string): Promise<Page | null>
     create(input: PageInput): Promise<Page>
-    update(id: string, updates: Partial<Pick<Page, 'title' | 'icon' | 'parentId' | 'content' | 'isFavorite'>>): Promise<Page>
+    update(id: string, updates: Partial<Pick<Page, 'title' | 'icon' | 'parentId' | 'groupId' | 'content' | 'isFavorite'>>): Promise<Page>
     delete(id: string): Promise<void>
     restore(id: string): Promise<void>
     search(query: string): Promise<Page[]>
     history(id: string): Promise<Array<{ id: number; content: JsonNode; createdAt: string }>>
+  }
+  groups: {
+    list(): Promise<PageGroup[]>
+    create(name: string, icon: string): Promise<PageGroup>
+    update(id: string, name: string, icon: string): Promise<PageGroup>
+    delete(id: string): Promise<void>
   }
   settings: {
     get(): Promise<AppSettings>

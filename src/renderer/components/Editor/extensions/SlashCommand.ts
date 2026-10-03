@@ -3,6 +3,7 @@ import Suggestion, { type SuggestionProps } from '@tiptap/suggestion'
 import tippy, { type Instance } from 'tippy.js'
 import Fuse from 'fuse.js'
 import type { Editor } from '@tiptap/core'
+import { useUi } from '../../../store/ui'
 
 interface SlashItem {
   title: string
@@ -24,13 +25,37 @@ const items: SlashItem[] = [
   { title: 'Чек-лист', description: 'Список задач с флажками', aliases: ['task', 'todo'], type: 'taskList', icon: '☑', shortcut: '[] ', action: (e, r) => e.chain().focus().deleteRange(r).toggleTaskList().run() },
   { title: 'Toggle', description: 'Сворачиваемый блок', aliases: ['toggle', 'свернуть'], type: 'toggle', icon: '▸', shortcut: '', action: (e, r) => e.chain().focus().deleteRange(r).insertContent({ type: 'toggle', content: [{ type: 'paragraph' }] }).run() },
   { title: 'Цитата', description: 'Блок цитирования', aliases: ['quote'], type: 'blockquote', icon: '❝', shortcut: '> ', action: (e, r) => e.chain().focus().deleteRange(r).toggleBlockquote().run() },
-  { title: 'Код', description: 'Блок кода с подсветкой', aliases: ['code'], type: 'codeBlock', icon: '</>', shortcut: '```', action: (e, r) => { const language = window.prompt('Язык программирования (например, javascript, python, tsx):', 'javascript'); if (language !== null) e.chain().focus().deleteRange(r).setCodeBlock({ language: language.trim() || 'plaintext' }).run() } },
+  { title: 'Код', description: 'Блок кода с подсветкой', aliases: ['code'], type: 'codeBlock', icon: '</>', shortcut: '```', action: (e, r) => e.chain().focus().deleteRange(r).setCodeBlock({ language: 'plaintext' }).run() },
   { title: 'Разделитель', description: 'Горизонтальная линия', aliases: ['divider', 'hr'], type: 'divider', icon: '―', shortcut: '---', action: (e, r) => e.chain().focus().deleteRange(r).setHorizontalRule().run() },
   { title: 'Изображение', description: 'Вставить изображение по ссылке', aliases: ['image', 'photo'], type: 'image', icon: '▧', shortcut: '', action: (e, r) => { const src = window.prompt('Ссылка на изображение'); if (src) e.chain().focus().deleteRange(r).setImage({ src }).run() } },
   { title: 'Callout', description: 'Информационный, предупредительный или важный блок', aliases: ['info', 'warning', 'success', 'danger'], type: 'callout', icon: 'ⓘ', shortcut: '', action: (e, r) => { const requested = window.prompt('Тип блока: info, warning, success или danger', 'info'); if (requested !== null) { const kind = ['info', 'warning', 'success', 'danger'].includes(requested.trim().toLowerCase()) ? requested.trim().toLowerCase() : 'info'; e.chain().focus().deleteRange(r).insertContent({ type: 'callout', attrs: { kind }, content: [{ type: 'paragraph' }] }).run() } } },
   { title: 'Таблица', description: 'Таблица 3 × 3', aliases: ['table'], type: 'table', icon: '▦', shortcut: '', action: (e, r) => e.chain().focus().deleteRange(r).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
   { title: 'Embed', description: 'Встроенная ссылка', aliases: ['link', 'embed'], type: 'embed', icon: '↗', shortcut: '', action: (e, r) => { const url = window.prompt('Введите URL'); if (url) e.chain().focus().deleteRange(r).insertContent({ type: 'embed', attrs: { url, title: url } }).run() } }
 ]
+
+const englishCommands: Record<string, [string, string]> = {
+  'Текст': ['Text', 'Plain text block'],
+  'Заголовок 1': ['Heading 1', 'Large heading'],
+  'Заголовок 2': ['Heading 2', 'Medium heading'],
+  'Заголовок 3': ['Heading 3', 'Small heading'],
+  'Маркированный список': ['Bulleted list', 'List with bullets'],
+  'Нумерованный список': ['Numbered list', 'Numbered list'],
+  'Чек-лист': ['To-do list', 'Checklist with checkboxes'],
+  'Toggle': ['Toggle', 'Collapsible block'],
+  'Цитата': ['Quote', 'Block quote'],
+  'Callout': ['Callout', 'Highlighted information block'],
+  'Разделитель': ['Divider', 'Horizontal divider'],
+  'Изображение': ['Image', 'Insert an image from a URL'],
+  'Таблица': ['Table', '3 × 3 table'],
+  'Код': ['Code', 'Syntax-highlighted code block'],
+  'Embed': ['Embed', 'Link preview']
+}
+
+function localized(item: SlashItem): { title: string; description: string } {
+  if (useUi.getState().language === 'ru') return item
+  const translated = englishCommands[item.title]
+  return translated ? { title: translated[0], description: translated[1] } : { title: item.title, description: item.description }
+}
 
 class SlashMenu {
   private component: HTMLDivElement | null = null
@@ -90,9 +115,22 @@ class SlashMenu {
     const visible = this.filtered(props.query)
     this.component.replaceChildren()
     visible.forEach((item, index) => {
+      const text = localized(item)
       const button = document.createElement('button')
       button.className = index === this.selectedIndex ? 'slash-item active' : 'slash-item'
-      button.innerHTML = `<span class="slash-icon">${item.icon}</span><span class="slash-copy"><strong>${item.title}</strong><small>${item.description}</small></span><kbd>${item.shortcut}</kbd>`
+      const icon = document.createElement('span')
+      icon.className = 'slash-icon'
+      icon.textContent = item.icon
+      const copy = document.createElement('span')
+      copy.className = 'slash-copy'
+      const title = document.createElement('strong')
+      title.textContent = text.title
+      const description = document.createElement('small')
+      description.textContent = text.description
+      copy.append(title, description)
+      const shortcut = document.createElement('kbd')
+      shortcut.textContent = item.shortcut
+      button.append(icon, copy, shortcut)
       button.addEventListener('mousedown', (event) => {
         event.preventDefault()
         item.action(props.editor, props.range)

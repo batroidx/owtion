@@ -14,6 +14,12 @@ const api: OwtionApi = {
     search: (query) => ipcRenderer.invoke('pages:search', query),
     history: (id) => ipcRenderer.invoke('pages:history', id)
   },
+  groups: {
+    list: () => ipcRenderer.invoke('groups:list'),
+    create: (name, icon) => ipcRenderer.invoke('groups:create', name, icon),
+    update: (id, name, icon) => ipcRenderer.invoke('groups:update', id, name, icon),
+    delete: (id) => ipcRenderer.invoke('groups:delete', id)
+  },
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),
     set: (key, value) => ipcRenderer.invoke('settings:set', key, value)

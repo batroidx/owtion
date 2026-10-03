@@ -13,6 +13,10 @@ export function registerIpc(getWindow: () => BrowserWindow | null, preferences: 
   ipcMain.handle('pages:restore', (_event, id: string) => database.restorePage(id))
   ipcMain.handle('pages:search', (_event, query: string) => database.search(query))
   ipcMain.handle('pages:history', (_event, id: string) => database.getHistory(id))
+  ipcMain.handle('groups:list', () => database.listGroups())
+  ipcMain.handle('groups:create', (_event, name: string, icon: string) => database.createGroup(name, icon))
+  ipcMain.handle('groups:update', (_event, id: string, name: string, icon: string) => database.updateGroup(id, name, icon))
+  ipcMain.handle('groups:delete', (_event, id: string) => database.deleteGroup(id))
   ipcMain.handle('settings:get', () => ({ ...database.getSettings(), launchAtLogin: preferences.get('launchAtLogin') }))
   ipcMain.handle('settings:set', (_event, key: string, value: unknown) => {
     if (key === 'launchAtLogin' && typeof value === 'boolean') {

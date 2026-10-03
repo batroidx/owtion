@@ -25,6 +25,10 @@ function createWindow(): void {
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : undefined,
     trafficLightPosition: process.platform === 'darwin' ? { x: 12, y: 11 } : undefined,
     backgroundColor: '#ffffff',
+    vibrancy: process.platform === 'darwin' ? 'under-window' : undefined,
+    visualEffectState: process.platform === 'darwin' ? 'active' : undefined,
+    backgroundMaterial: process.platform === 'win32' ? 'acrylic' : undefined,
+    transparent: process.platform === 'darwin',
     title: 'Owtion',
     webPreferences: {
       preload: join(currentDirectory, '../preload/index.cjs'),

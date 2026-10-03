@@ -48,11 +48,6 @@ button { cursor: pointer; }
 .page-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .recent-row { min-height: 28px; }
 .subtle-link { margin-left: 8px; padding: 2px 0; border: 0; color: var(--text-secondary); background: transparent; font-size: 12px; }
-.trash-heading { width: 100%; min-height: 24px; margin: 0 4px 4px; padding: 0; border: 0; display: flex; align-items: center; gap: 7px; color: var(--text-secondary); background: transparent; font-size: 11px; font-weight: 650; text-align: left; text-transform: uppercase; }
-.trash-row { padding: 5px 4px; display: flex; align-items: center; justify-content: space-between; gap: 4px; color: var(--text-secondary); font-size: 11px; }
-.trash-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.trash-row button { border: 0; color: var(--accent); background: transparent; font-size: 10px; }
-.trash-empty { padding-left: 5px; color: var(--text-secondary); font-size: 11px; }
 .settings-button { height: 34px; display: flex; align-items: center; gap: 9px; padding: 0 8px; border: 0; border-top: 1px solid var(--border); color: var(--text-secondary); background: transparent; text-align: left; }
 .settings-button:hover { color: var(--text); }
 .main-panel { min-width: 0; flex: 1; display: flex; flex-direction: column; position: relative; }
@@ -86,6 +81,10 @@ button { cursor: pointer; }
 .tiptap h2 { margin-top: 17px; font-size: 1.45em; }
 .tiptap h3 { margin-top: 14px; font-size: 1.2em; }
 .tiptap ul, .tiptap ol { padding-left: 27px; }
+.tiptap ul:not([data-type='taskList']) { list-style: disc; }
+.tiptap ol { list-style: decimal; }
+.tiptap li ul { list-style: circle; }
+.tiptap li ol { list-style: lower-alpha; }
 .tiptap li p { margin: 0; }
 .tiptap blockquote { margin-left: 0; padding-left: 14px; border-left: 3px solid var(--border); color: var(--text-secondary); }
 .tiptap pre { overflow-x: auto; padding: 13px 15px; border: 1px solid var(--border); border-radius: 7px; color: var(--text); background: var(--bg-secondary); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; }
@@ -99,9 +98,20 @@ button { cursor: pointer; }
 .tiptap th { background: var(--bg-secondary); font-weight: 600; }
 .tiptap .selectedCell:after { background: color-mix(in srgb, var(--accent) 15%, transparent); content: ''; inset: 0; pointer-events: none; position: absolute; }
 .tiptap [data-type="taskList"] { padding: 0; list-style: none; }
-.tiptap [data-type="taskItem"] { display: flex; align-items: flex-start; gap: 8px; }
-.tiptap [data-type="taskItem"] label { padding-top: 4px; }
-.tiptap [data-type="taskItem"] p { flex: 1; }
+.tiptap [data-type="taskItem"] {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: start;
+  column-gap: 8px;
+  list-style: none;
+}
+.tiptap [data-type="taskItem"] > label {
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+}
+.tiptap [data-type="taskItem"] > div { min-width: 0; grid-column: 2; }
+.tiptap [data-type="taskItem"] > div > p { margin: 0; }
 .toggle-block { margin: 7px 0; }
 .toggle-block summary { width: fit-content; cursor: pointer; color: var(--text); font-weight: 600; }
 .toggle-content { padding-left: 22px; }
@@ -149,6 +159,7 @@ button { cursor: pointer; }
   font-size: 11px;
 }
 .floating-tools .table-action-button:hover { color: var(--text); background: var(--hover); }
+.table-tools-divider { width: 1px; height: 18px; align-self: center; background: var(--border); }
 .empty-state { margin: auto; display: flex; flex-direction: column; align-items: center; text-align: center; }
 .empty-icon { font-size: 38px; }
 .empty-state h1 { margin: 12px 0 5px; font-size: 20px; }
@@ -165,8 +176,6 @@ button { cursor: pointer; }
 .settings-dropdown { top: calc(100% + 6px); right: 0; z-index: 4; }
 .setting-row input { accent-color: var(--accent); }
 .settings-note { margin: 15px 0 0; color: var(--text-secondary); font-size: 12px; }
-.history-row { min-height: 38px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-.history-row button { border: 0; color: var(--accent); background: transparent; }
 .command-dialog { padding: 0; align-items: flex-start; overflow: auto; }
 .command-dialog [cmdk-root] { width: min(600px, calc(100vw - 32px)); margin-top: 12vh; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); }
 .command-search { height: 50px; padding: 0 15px; display: flex; align-items: center; gap: 11px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
@@ -431,24 +440,24 @@ button { cursor: pointer; }
 }
 :root[data-font='serif'] { --editor-font-family: Georgia, 'Times New Roman', serif; }
 :root[data-font='mono'] { --editor-font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
-.block-drop-before,
-.block-drop-after {
-  position: relative;
+.tiptap > * {
+  transition: transform 150ms var(--ease-standard), opacity 120ms var(--ease-standard);
 }
-.block-drop-before::before,
-.block-drop-after::after {
+.tiptap > .block-drag-source { opacity: .3; }
+.tiptap > .block-drag-shift-up { transform: translateY(calc(-1 * var(--drag-shift, 0px))); }
+.tiptap > .block-drag-shift-down { transform: translateY(var(--drag-shift, 0px)); }
+.block-drop-indicator {
   position: absolute;
-  z-index: 2;
+  z-index: 5;
   right: 0;
-  left: 0;
+  left: 48px;
   height: 2px;
   border-radius: 2px;
   background: var(--accent);
-  content: '';
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
   pointer-events: none;
+  transition: top 100ms var(--ease-standard);
 }
-.block-drop-before::before { top: -4px; }
-.block-drop-after::after { bottom: -4px; }
 .block-drag-preview {
   position: fixed;
   top: -1000px;
@@ -574,7 +583,6 @@ select {
 .page-row,
 .page-row-main,
 .recent-row,
-.trash-row,
 .sidebar-section h2 {
   min-width: 0;
   max-width: 100%;
@@ -591,17 +599,12 @@ select {
   flex: 1 1 0;
 }
 
-.page-label,
-.trash-row > span {
+.page-label {
   min-width: 0;
   flex: 1 1 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.trash-row button {
-  flex: 0 0 auto;
 }
 
 .tiptap > * {

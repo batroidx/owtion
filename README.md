@@ -24,10 +24,9 @@ npm run make
 
 База создаётся в каталоге `userData` Electron при первом запуске. Инициализация идемпотентна (`CREATE TABLE/INDEX IF NOT EXISTS`).
 
-- `pages`: содержимое в формате JSON, дерево страниц, избранное и время удаления.
+- `pages`: содержимое в формате JSON, дерево страниц и избранное. Удаление страницы навсегда удаляет её и вложенные страницы.
 - `blocks_index`: поисковый индекс текста блоков.
 - `settings`: пользовательские настройки.
-- `history`: предыдущие версии содержимого, не более 50 на страницу.
 - `groups`: пользовательские группы страниц с названием и lucide-иконкой; `pages.group_id` задаёт принадлежность группе.
 
 Ошибки БД записываются в `owtion-errors.log` рядом с базой.
@@ -37,10 +36,10 @@ npm run make
 - [x] Редактор на TipTap: заголовки, списки, чек-лист, цитата, код с подсветкой, разделитель, изображение, callout, таблица, toggle и embed.
 - [x] Меню `/` с fuzzy-поиском, быстрыми блоками, клавиатурной навигацией и позиционированием у курсора.
 - [x] Перемещение блока за handle; вставка блока кнопкой `+`; автосохранение через 500 мс.
-- [x] Дерево страниц с drag-and-drop-вложенностью, избранное, недавние, поиск по содержимому и корзина с восстановлением.
+- [x] Дерево страниц с drag-and-drop-вложенностью, избранное и поиск по содержимому.
 - [x] Палитра команд `Ctrl/⌘+K`, светлая/тёмная темы, оглавление и горячие клавиши.
 - [x] Плавные микроанимации, матовое стекло для всплывающих меню и монохромные иконки страниц.
-- [x] Экспорт Markdown/HTML, импорт Markdown, история версий, локальные настройки и автозапуск ОС.
+- [x] Экспорт Markdown/HTML, импорт Markdown, локальные настройки и автозапуск ОС.
 - [x] Frameless titlebar, системное меню и tray-меню на русском языке.
 
 ## SQL-схема
@@ -50,7 +49,7 @@ CREATE TABLE pages (
   id TEXT PRIMARY KEY, title TEXT NOT NULL, icon TEXT NOT NULL DEFAULT '📄',
   parent_id TEXT REFERENCES pages(id) ON DELETE SET NULL, content TEXT NOT NULL,
   created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
-  is_favorite INTEGER NOT NULL DEFAULT 0, deleted_at TEXT
+  is_favorite INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE blocks_index (
   page_id TEXT NOT NULL REFERENCES pages(id) ON DELETE CASCADE,
@@ -58,9 +57,4 @@ CREATE TABLE blocks_index (
   PRIMARY KEY (page_id, block_id)
 );
 CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-CREATE TABLE history (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  page_id TEXT NOT NULL REFERENCES pages(id) ON DELETE CASCADE,
-  content TEXT NOT NULL, created_at TEXT NOT NULL
-);
 ```

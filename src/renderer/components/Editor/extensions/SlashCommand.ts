@@ -4,7 +4,6 @@ import tippy, { type Instance } from 'tippy.js'
 import Fuse from 'fuse.js'
 import type { Editor } from '@tiptap/core'
 import { useUi } from '../../../store/ui'
-import { translate } from '../../../lib/i18n'
 
 interface SlashItem {
   title: string
@@ -24,13 +23,11 @@ const items: SlashItem[] = [
   { title: 'Маркированный список', description: 'Список с маркерами', aliases: ['bullet', 'list'], type: 'bulletList', icon: '•', shortcut: '- ', action: (e, r) => e.chain().focus().deleteRange(r).toggleBulletList().run() },
   { title: 'Нумерованный список', description: 'Список с нумерацией', aliases: ['ordered', 'number'], type: 'orderedList', icon: '1.', shortcut: '1. ', action: (e, r) => e.chain().focus().deleteRange(r).toggleOrderedList().run() },
   { title: 'Чек-лист', description: 'Список задач с флажками', aliases: ['task', 'todo'], type: 'taskList', icon: '☑', shortcut: '[] ', action: (e, r) => e.chain().focus().deleteRange(r).toggleTaskList().run() },
-  { title: 'Toggle', description: 'Сворачиваемый блок', aliases: ['toggle', 'свернуть'], type: 'toggle', icon: '▸', shortcut: '', action: (e, r) => e.chain().focus().deleteRange(r).insertContent({ type: 'toggle', content: [{ type: 'paragraph' }] }).run() },
   { title: 'Цитата', description: 'Блок цитирования', aliases: ['quote'], type: 'blockquote', icon: '❝', shortcut: '> ', action: (e, r) => e.chain().focus().deleteRange(r).toggleBlockquote().run() },
   { title: 'Код', description: 'Блок кода с подсветкой', aliases: ['code'], type: 'codeBlock', icon: '</>', shortcut: '```', action: (e, r) => e.chain().focus().deleteRange(r).setCodeBlock({ language: 'plaintext' }).run() },
   { title: 'Разделитель', description: 'Горизонтальная линия', aliases: ['divider', 'hr'], type: 'divider', icon: '―', shortcut: '---', action: (e, r) => e.chain().focus().deleteRange(r).setHorizontalRule().run() },
   { title: 'Изображение', description: 'Вставить изображение с устройства', aliases: ['image', 'photo', 'картинка'], type: 'image', icon: '▧', shortcut: '', action: (e, r) => { void insertImage(e, r) } },
-  { title: 'Таблица', description: 'Таблица 3 × 3', aliases: ['table'], type: 'table', icon: '▦', shortcut: '', action: (e, r) => e.chain().focus().deleteRange(r).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
-  { title: 'Embed', description: 'Встроенная ссылка', aliases: ['link', 'embed'], type: 'embed', icon: '↗', shortcut: '', action: (e, r) => { const url = window.prompt(translate(useUi.getState().language, 'embedUrlPrompt')); if (url) e.chain().focus().deleteRange(r).insertContent({ type: 'embed', attrs: { url, title: url } }).run() } }
+  { title: 'Таблица', description: 'Таблица 3 × 3', aliases: ['table'], type: 'table', icon: '▦', shortcut: '', action: (e, r) => e.chain().focus().deleteRange(r).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() }
 ]
 
 const englishCommands: Record<string, [string, string]> = {
@@ -41,13 +38,11 @@ const englishCommands: Record<string, [string, string]> = {
   'Маркированный список': ['Bulleted list', 'List with bullets'],
   'Нумерованный список': ['Numbered list', 'Numbered list'],
   'Чек-лист': ['To-do list', 'Checklist with checkboxes'],
-  'Toggle': ['Toggle', 'Collapsible block'],
   'Цитата': ['Quote', 'Block quote'],
   'Разделитель': ['Divider', 'Horizontal divider'],
   'Изображение': ['Image', 'Choose an image from this device'],
   'Таблица': ['Table', '3 × 3 table'],
-  'Код': ['Code', 'Syntax-highlighted code block'],
-  'Embed': ['Embed', 'Link preview']
+  'Код': ['Code', 'Syntax-highlighted code block']
 }
 
 async function insertImage(editor: Editor, range: { from: number; to: number }): Promise<void> {

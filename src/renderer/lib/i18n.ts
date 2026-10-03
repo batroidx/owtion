@@ -10,9 +10,6 @@ const messages = {
     settings: 'Настройки',
     favorites: 'Избранное',
     personal: 'Личное',
-    trash: 'Корзина',
-    restore: 'Восстановить',
-    emptyTrash: 'Корзина пуста',
     newGroup: 'Новая группа',
     createGroup: 'Создать группу',
     groupName: 'Название группы',
@@ -51,8 +48,6 @@ const messages = {
     more: 'Дополнительно',
     duplicate: 'Дублировать страницу',
     exportHtml: 'Экспорт в HTML',
-    history: 'История версий',
-    historyEmpty: 'История пуста.',
     delete: 'Удалить',
     addNestedPage: 'Новая вложенная страница',
     rename: 'Переименовать',
@@ -73,7 +68,7 @@ const messages = {
     addBlock: 'Добавить блок',
     moveBlock: 'Переместить блок',
     resetDatabase: 'Сбросить базу данных',
-    resetDatabaseConfirm: 'Все страницы, группы и история будут удалены без возможности восстановления. Продолжить?',
+    resetDatabaseConfirm: 'Все страницы и группы будут удалены без возможности восстановления. Продолжить?',
     resetSettings: 'Сбросить все настройки',
     resetSettingsConfirm: 'Тема, язык, шрифт и остальные настройки будут сброшены. Продолжить?',
     launchAtLogin: 'Запускать при входе в систему',
@@ -89,7 +84,9 @@ const messages = {
     close: 'Закрыть',
     shareOffline: 'Совместная работа недоступна офлайн.',
     embedUrlPrompt: 'Введите URL',
-    toggleContent: 'Развернуть или свернуть блок'
+    toggleContent: 'Развернуть или свернуть блок',
+    deleteTableRow: 'Удалить строку',
+    deleteTableColumn: 'Удалить столбец'
   },
   en: {
     search: 'Search or run a command…',
@@ -98,9 +95,6 @@ const messages = {
     settings: 'Settings',
     favorites: 'Favorites',
     personal: 'Personal',
-    trash: 'Trash',
-    restore: 'Restore',
-    emptyTrash: 'Trash is empty',
     newGroup: 'New group',
     createGroup: 'Create group',
     groupName: 'Group name',
@@ -139,8 +133,6 @@ const messages = {
     more: 'More',
     duplicate: 'Duplicate page',
     exportHtml: 'Export as HTML',
-    history: 'Version history',
-    historyEmpty: 'No history.',
     delete: 'Delete',
     addNestedPage: 'New nested page',
     rename: 'Rename',
@@ -161,7 +153,7 @@ const messages = {
     addBlock: 'Add block',
     moveBlock: 'Move block',
     resetDatabase: 'Reset database',
-    resetDatabaseConfirm: 'All pages, groups, and history will be permanently deleted. Continue?',
+    resetDatabaseConfirm: 'All pages and groups will be permanently deleted. Continue?',
     resetSettings: 'Reset all settings',
     resetSettingsConfirm: 'Theme, language, font, and other preferences will be reset. Continue?',
     launchAtLogin: 'Launch at login',
@@ -177,7 +169,9 @@ const messages = {
     close: 'Close',
     shareOffline: 'Collaboration is unavailable offline.',
     embedUrlPrompt: 'Enter URL',
-    toggleContent: 'Expand or collapse block'
+    toggleContent: 'Expand or collapse block',
+    deleteTableRow: 'Delete row',
+    deleteTableColumn: 'Delete column'
   }
 } as const
 

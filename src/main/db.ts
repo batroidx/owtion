@@ -65,8 +65,7 @@ export async function initializeDatabase(): Promise<void> {
       CREATE TABLE IF NOT EXISTS pages (
         id TEXT PRIMARY KEY, title TEXT NOT NULL, icon TEXT NOT NULL DEFAULT '📄',
         parent_id TEXT REFERENCES pages(id) ON DELETE SET NULL, content TEXT NOT NULL,
-        created_at TEXT NOT NULL, updated_at TEXT NOT NULL, is_favorite INTEGER NOT NULL DEFAULT 0,
-        deleted_at TEXT
+        created_at TEXT NOT NULL, updated_at TEXT NOT NULL, is_favorite INTEGER NOT NULL DEFAULT 0
       );
       CREATE TABLE IF NOT EXISTS blocks_index (
         page_id TEXT NOT NULL REFERENCES pages(id) ON DELETE CASCADE,
@@ -74,15 +73,14 @@ export async function initializeDatabase(): Promise<void> {
         PRIMARY KEY (page_id, block_id)
       );
       CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-      CREATE TABLE IF NOT EXISTS history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, page_id TEXT NOT NULL REFERENCES pages(id) ON DELETE CASCADE,
-        content TEXT NOT NULL, created_at TEXT NOT NULL
-      );
       CREATE INDEX IF NOT EXISTS idx_pages_updated ON pages(updated_at DESC);
       CREATE INDEX IF NOT EXISTS idx_pages_parent ON pages(parent_id);
-      CREATE INDEX IF NOT EXISTS idx_history_page ON history(page_id, created_at DESC);
     `)
+    db.exec('DROP TABLE IF EXISTS history;')
     const pageColumns = db.prepare('PRAGMA table_info(pages)').all() as Array<{ name: string }>
+    if (pageColumns.some((column) => column.name === 'deleted_at')) {
+      db.exec('UPDATE pages SET deleted_at=NULL WHERE deleted_at IS NOT NULL')
+    }
     if (!pageColumns.some((column) => column.name === 'group_id')) {
       db.exec('ALTER TABLE pages ADD COLUMN group_id TEXT REFERENCES groups(id) ON DELETE SET NULL')
     }
@@ -106,20 +104,14 @@ function toPage(row: Record<string, unknown>): Page {
     groupId: row.group_id === null || row.group_id === undefined ? null : String(row.group_id),
     content: JSON.parse(String(row.content)) as Page['content'],
     createdAt: String(row.created_at), updatedAt: String(row.updated_at),
-    isFavorite: Number(row.is_favorite) === 1, deletedAt: row.deleted_at === null ? null : String(row.deleted_at)
+    isFavorite: Number(row.is_favorite) === 1
   }
 }
 
 export const database = {
-  listPages: (includeDeleted = false): Page[] => run('Список страниц', () => {
-    const query = includeDeleted
-      ? 'SELECT * FROM pages ORDER BY updated_at DESC'
-      : 'SELECT * FROM pages WHERE deleted_at IS NULL ORDER BY updated_at DESC'
-    return (db.prepare(query).all() as Record<string, unknown>[]).map(toPage)
+  listPages: (): Page[] => run('Список страниц', () => {
+    return (db.prepare('SELECT * FROM pages ORDER BY updated_at DESC').all() as Record<string, unknown>[]).map(toPage)
   }),
-  listTrash: (): Page[] => run('Список корзины', () =>
-    (db.prepare('SELECT * FROM pages WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC').all() as Record<string, unknown>[]).map(toPage)
-  ),
   getPage: (id: string): Page | null => run('Получение страницы', () => {
     const row = db.prepare('SELECT * FROM pages WHERE id = ?').get(id) as Record<string, unknown> | undefined
     return row ? toPage(row) : null
@@ -130,7 +122,7 @@ export const database = {
       id: nanoid(), title: input.title || 'Без названия', icon: input.icon || '📄',
       parentId: input.parentId ?? null, groupId: input.groupId ?? null,
       content: input.content ?? { type: 'doc', content: [{ type: 'paragraph' }] },
-      createdAt: now, updatedAt: now, isFavorite: false, deletedAt: null
+      createdAt: now, updatedAt: now, isFavorite: false
     }
     db.prepare('INSERT INTO pages (id,title,icon,parent_id,group_id,content,created_at,updated_at,is_favorite) VALUES (?,?,?,?,?,?,?,?,0)')
       .run(page.id, page.title, page.icon, page.parentId, page.groupId, JSON.stringify(page.content), now, now)
@@ -155,32 +147,22 @@ export const database = {
         UNION ALL SELECT pages.id FROM pages JOIN descendants ON pages.parent_id=descendants.id
       ) UPDATE pages SET group_id=? WHERE id IN (SELECT id FROM descendants)`).run(id, updates.groupId)
     }
-    if (updates.content) {
-      const insertHistory = db.prepare('INSERT INTO history (page_id,content,created_at) VALUES (?,?,?)')
-      insertHistory.run(id, JSON.stringify(existing.content), next.updatedAt)
-      db.prepare('DELETE FROM history WHERE page_id = ? AND id NOT IN (SELECT id FROM history WHERE page_id = ? ORDER BY id DESC LIMIT 50)').run(id, id)
-      rebuildIndex(id, updates.content)
-    }
+    if (updates.content) rebuildIndex(id, updates.content)
     return next
   }),
   deletePage: (id: string): void => run('Удаление страницы', () => {
-    db.prepare('UPDATE pages SET deleted_at=?, updated_at=? WHERE id=?').run(new Date().toISOString(), new Date().toISOString(), id)
-  }),
-  restorePage: (id: string): void => run('Восстановление страницы', () => {
-    db.prepare('UPDATE pages SET deleted_at=NULL, updated_at=? WHERE id=?').run(new Date().toISOString(), id)
+    db.prepare(`WITH RECURSIVE descendants(id) AS (
+      SELECT id FROM pages WHERE id=?
+      UNION ALL SELECT pages.id FROM pages JOIN descendants ON pages.parent_id=descendants.id
+    ) DELETE FROM pages WHERE id IN (SELECT id FROM descendants)`).run(id)
   }),
   search: (query: string): Page[] => run('Поиск страниц', () => {
     if (!query.trim()) return []
     const needle = `%${query.replace(/[%_]/g, '\\$&')}%`
     return (db.prepare(`SELECT DISTINCT p.* FROM pages p LEFT JOIN blocks_index b ON p.id=b.page_id
-      WHERE p.deleted_at IS NULL AND (p.title LIKE ? ESCAPE '\\' OR b.text LIKE ? ESCAPE '\\')
+      WHERE (p.title LIKE ? ESCAPE '\\' OR b.text LIKE ? ESCAPE '\\')
       ORDER BY p.updated_at DESC LIMIT 100`).all(needle, needle) as Record<string, unknown>[]).map(toPage)
   }),
-  getHistory: (id: string): Array<{ id: number; content: Page['content']; createdAt: string }> =>
-    run('История страницы', () => (db.prepare('SELECT id,content,created_at FROM history WHERE page_id=? ORDER BY id DESC LIMIT 50')
-      .all(id) as Array<{ id: number; content: string; created_at: string }>).map((row) => ({
-      id: row.id, content: JSON.parse(row.content) as Page['content'], createdAt: row.created_at
-    }))),
   getSettings: (): AppSettings => run('Чтение настроек', () => {
     const values = db.prepare('SELECT key,value FROM settings').all() as Array<{ key: string; value: string }>
     return values.reduce<AppSettings>((settings, item) => {
@@ -195,7 +177,7 @@ export const database = {
   reset: (): void => run('Сброс базы данных', () => {
     db.exec('BEGIN IMMEDIATE')
     try {
-      db.exec('DELETE FROM history; DELETE FROM blocks_index; DELETE FROM pages; DELETE FROM groups; COMMIT')
+      db.exec('DELETE FROM blocks_index; DELETE FROM pages; DELETE FROM groups; COMMIT')
     } catch (error) {
       db.exec('ROLLBACK')
       throw error

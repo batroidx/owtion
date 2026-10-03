@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type MouseEvent } from 'react'
-import { PanelLeft, Search, FilePlus2, FileUp, Keyboard, FileText } from 'lucide-react'
+import { PanelLeft, Search, FilePlus2, FileUp, Keyboard, FileText, Plus, Minus } from 'lucide-react'
 import TitleBar from './components/Layout/TitleBar'
 import Sidebar from './components/Layout/Sidebar'
 import Topbar from './components/Layout/Topbar'
@@ -127,8 +127,11 @@ export default function App(): JSX.Element {
           <button className="icon-button" data-tooltip={translate(language, 'searchPages')} onClick={() => paletteOpen(true)}><Search size={16} /></button>
           <button className="icon-button" data-tooltip={translate(language, 'importMarkdown')} onClick={() => importInput.current?.click()}><FileUp size={16} /></button>
           {tableToolsVisible && <>
-            <button className="table-action-button" data-tooltip={translate(language, 'addTableRow')} aria-label={translate(language, 'addTableRow')} onClick={() => editorRef.current?.addTableRow()}><span aria-hidden="true">＋</span>{translate(language, 'addTableRow')}</button>
-            <button className="table-action-button" data-tooltip={translate(language, 'addTableColumn')} aria-label={translate(language, 'addTableColumn')} onClick={() => editorRef.current?.addTableColumn()}><span aria-hidden="true">＋</span>{translate(language, 'addTableColumn')}</button>
+            <button className="table-action-button" data-tooltip={translate(language, 'addTableRow')} aria-label={translate(language, 'addTableRow')} onClick={() => editorRef.current?.addTableRow()}><Plus size={15} aria-hidden="true" /></button>
+            <button className="table-action-button" data-tooltip={translate(language, 'deleteTableRow')} aria-label={translate(language, 'deleteTableRow')} onClick={() => editorRef.current?.deleteTableRow()}><Minus size={15} aria-hidden="true" /></button>
+            <span className="table-tools-divider" aria-hidden="true" />
+            <button className="table-action-button" data-tooltip={translate(language, 'addTableColumn')} aria-label={translate(language, 'addTableColumn')} onClick={() => editorRef.current?.addTableColumn()}><Plus size={15} aria-hidden="true" /></button>
+            <button className="table-action-button" data-tooltip={translate(language, 'deleteTableColumn')} aria-label={translate(language, 'deleteTableColumn')} onClick={() => editorRef.current?.deleteTableColumn()}><Minus size={15} aria-hidden="true" /></button>
           </>}
           {!sidebarOpen && <button className="icon-button" data-tooltip={translate(language, 'showSidebar')} onClick={toggleSidebar}><PanelLeft size={16} /></button>}
           <button className="icon-button" data-tooltip={translate(language, 'shortcuts')} onClick={() => { if (shortcutsTimer.current) clearTimeout(shortcutsTimer.current); setShortcutsClosing(false); setShowShortcuts(true) }}><Keyboard size={16} /></button>

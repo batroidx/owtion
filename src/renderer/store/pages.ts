@@ -64,7 +64,7 @@ export const usePages = create<PagesState>((set, get) => ({
   select: async (id) => {
     try {
       const page = await window.owtion.pages.get(id)
-      if (page && !page.deletedAt) set({ currentPage: page })
+      if (page) set({ currentPage: page })
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Не удалось открыть страницу' })
     }
@@ -84,8 +84,21 @@ export const usePages = create<PagesState>((set, get) => ({
   },
   remove: async (id) => {
     await window.owtion.pages.delete(id)
-    const pages = get().pages.filter((page) => page.id !== id)
-    set({ pages, currentPage: get().currentPage?.id === id ? pages[0] ?? null : get().currentPage })
+    const allPages = get().pages
+    const removedIds = new Set([id])
+    let foundDescendant = true
+    while (foundDescendant) {
+      foundDescendant = false
+      for (const page of allPages) {
+        if (page.parentId && removedIds.has(page.parentId) && !removedIds.has(page.id)) {
+          removedIds.add(page.id)
+          foundDescendant = true
+        }
+      }
+    }
+    const pages = allPages.filter((page) => !removedIds.has(page.id))
+    const currentPage = get().currentPage
+    set({ pages, currentPage: currentPage && removedIds.has(currentPage.id) ? pages[0] ?? null : currentPage })
   },
   setCurrentContent: (content) => {
     set((state) => state.currentPage ? { currentPage: { ...state.currentPage, content } } : {})

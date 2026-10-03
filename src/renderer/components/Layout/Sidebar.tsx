@@ -86,8 +86,6 @@ export default function Sidebar({ isOpen }: SidebarProps): JSX.Element {
   const language = useUi((state) => state.language)
   const commandQuery = useUi((state) => state.commandQuery)
   const [query, setQuery] = useState('')
-  const [trashOpen, setTrashOpen] = useState(false)
-  const [trashPages, setTrashPages] = useState<Page[]>([])
   const [searchPages, setSearchPages] = useState<Page[]>([])
   const [contextMenu, setContextMenu] = useState<{ page: Page; x: number; y: number } | null>(null)
   const [groupMenu, setGroupMenu] = useState<GroupContextMenu | null>(null)
@@ -213,20 +211,6 @@ export default function Sidebar({ isOpen }: SidebarProps): JSX.Element {
 
           <button className="add-group-button" onClick={() => setGroupDialog({ name: '', icon: 'folder' })}><Plus size={14} /> {translate(language, 'newGroup')}</button>
 
-          <section className="sidebar-section">
-            <button className="trash-heading" onClick={async () => {
-              const open = !trashOpen
-              setTrashOpen(open)
-              if (open) setTrashPages(await window.owtion.pages.trash())
-            }}><Trash2 size={13} /> {translate(language, 'trash')}</button>
-            {trashOpen && (trashPages.length
-              ? trashPages.map((page) => <div className="trash-row" key={page.id}><span>{page.title}</span><button onClick={async () => {
-                await window.owtion.pages.restore(page.id)
-                setTrashPages(await window.owtion.pages.trash())
-                await usePages.getState().load()
-              }}>{translate(language, 'restore')}</button></div>)
-              : <p className="trash-empty">{translate(language, 'emptyTrash')}</p>)}
-          </section>
         </div>
         <button className="settings-button" onClick={() => settingsOpen(true)}><Settings size={16} /> {translate(language, 'settings')}</button>
       </aside>

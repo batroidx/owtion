@@ -16,7 +16,6 @@ export interface Page {
   createdAt: string
   updatedAt: string
   isFavorite: boolean
-  deletedAt: string | null
 }
 
 export interface PageGroup {
@@ -33,14 +32,11 @@ export interface OwtionApi {
   platform: 'win32' | 'darwin' | 'linux'
   pages: {
     list(): Promise<Page[]>
-    trash(): Promise<Page[]>
     get(id: string): Promise<Page | null>
     create(input: PageInput): Promise<Page>
     update(id: string, updates: Partial<Pick<Page, 'title' | 'icon' | 'parentId' | 'groupId' | 'content' | 'isFavorite'>>): Promise<Page>
     delete(id: string): Promise<void>
-    restore(id: string): Promise<void>
     search(query: string): Promise<Page[]>
-    history(id: string): Promise<Array<{ id: number; content: JsonNode; createdAt: string }>>
   }
   groups: {
     list(): Promise<PageGroup[]>

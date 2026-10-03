@@ -5,14 +5,11 @@ const api: OwtionApi = {
   platform: process.platform === 'win32' || process.platform === 'darwin' ? process.platform : 'linux',
   pages: {
     list: () => ipcRenderer.invoke('pages:list'),
-    trash: () => ipcRenderer.invoke('pages:trash'),
     get: (id) => ipcRenderer.invoke('pages:get', id),
     create: (input) => ipcRenderer.invoke('pages:create', input),
     update: (id, updates) => ipcRenderer.invoke('pages:update', id, updates),
     delete: (id) => ipcRenderer.invoke('pages:delete', id),
-    restore: (id) => ipcRenderer.invoke('pages:restore', id),
     search: (query) => ipcRenderer.invoke('pages:search', query),
-    history: (id) => ipcRenderer.invoke('pages:history', id)
   },
   groups: {
     list: () => ipcRenderer.invoke('groups:list'),

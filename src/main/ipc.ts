@@ -11,14 +11,11 @@ export function registerIpc(
   updateMenuLanguage: (language: 'ru' | 'en') => void
 ): void {
   ipcMain.handle('pages:list', () => database.listPages())
-  ipcMain.handle('pages:trash', () => database.listTrash())
   ipcMain.handle('pages:get', (_event, id: string) => database.getPage(id))
   ipcMain.handle('pages:create', (_event, input: PageInput) => database.createPage(input))
   ipcMain.handle('pages:update', (_event, id: string, updates) => database.updatePage(id, updates))
   ipcMain.handle('pages:delete', (_event, id: string) => database.deletePage(id))
-  ipcMain.handle('pages:restore', (_event, id: string) => database.restorePage(id))
   ipcMain.handle('pages:search', (_event, query: string) => database.search(query))
-  ipcMain.handle('pages:history', (_event, id: string) => database.getHistory(id))
   ipcMain.handle('groups:list', () => database.listGroups())
   ipcMain.handle('groups:create', (_event, name: string, icon: string) => database.createGroup(name, icon))
   ipcMain.handle('groups:update', (_event, id: string, name: string, icon: string) => database.updateGroup(id, name, icon))

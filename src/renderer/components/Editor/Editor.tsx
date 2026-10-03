@@ -26,6 +26,8 @@ const lowlight = createLowlight(common)
 export interface EditorHandle {
   addTableRow(): void
   addTableColumn(): void
+  deleteTableRow(): void
+  deleteTableColumn(): void
 }
 
 interface EditorProps {
@@ -40,9 +42,10 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onTableAc
   const wrapper = useRef<HTMLDivElement>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hideHandleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const dropTarget = useRef<HTMLElement | null>(null)
-  const [handle, setHandle] = useState<{ top: number; left: number; position: number; block: HTMLElement } | null>(null)
-  const dragSource = useRef<{ position: number; node: ProseMirrorNode } | null>(null)
+  const [handle, setHandle] = useState<{ top: number; left: number; index: number; block: HTMLElement } | null>(null)
+  const dragSource = useRef<{ index: number; position: number; node: ProseMirrorNode; element: HTMLElement } | null>(null)
+  const dropIndex = useRef<number | null>(null)
+  const dropIndicator = useRef<HTMLDivElement>(null)
   const [codeBlockActive, setCodeBlockActive] = useState(false)
   const [codeLanguage, setCodeLanguage] = useState('plaintext')
 
@@ -115,6 +118,12 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onTableAc
     },
     addTableColumn: () => {
       if (editor?.isActive('table')) editor.chain().focus().addColumnAfter().run()
+    },
+    deleteTableRow: () => {
+      if (editor?.isActive('table')) editor.chain().focus().deleteRow().run()
+    },
+    deleteTableColumn: () => {
+      if (editor?.isActive('table')) editor.chain().focus().deleteColumn().run()
     }
   }), [editor])
 
@@ -148,7 +157,7 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onTableAc
   }, [])
 
   const locateBlock = useCallback((target: EventTarget | null) => {
-    if (!(target instanceof HTMLElement) || !wrapper.current || !editor) return
+    if (!(target instanceof HTMLElement) || !wrapper.current || !editor || dragSource.current) return
     if (target.closest('.block-controls')) return
     const block = target.closest<HTMLElement>('.tiptap > *')
     if (!block) { scheduleHandleHide(); return }
@@ -156,13 +165,12 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onTableAc
     const rect = block.getBoundingClientRect()
     const wrapperRect = wrapper.current.getBoundingClientRect()
     const scrollTop = wrapper.current.scrollTop
-    const domPosition = editor.view.posAtDOM(block, 0)
-    const resolvedPosition = editor.state.doc.resolve(domPosition)
-    const position = resolvedPosition.depth > 0 ? resolvedPosition.before(1) : 0
+    const index = Array.from(editor.view.dom.children).indexOf(block)
+    if (index < 0 || index >= editor.state.doc.childCount) return
     setHandle((current) => current?.block === block ? current : {
       top: rect.top - wrapperRect.top + scrollTop,
       left: Math.max(4, rect.left - wrapperRect.left - 48),
-      position,
+      index,
       block
     })
   }, [cancelHandleHide, editor, scheduleHandleHide])
@@ -179,48 +187,77 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onTableAc
 
   const moveBlock = (event: React.DragEvent<HTMLDivElement>): void => {
     event.preventDefault()
-    if (!editor || !dragSource.current) return
-    const target = event.target
-    if (!(target instanceof HTMLElement)) return
-    const block = target.closest<HTMLElement>('.tiptap > *')
-    if (!block) return
-    const rect = block.getBoundingClientRect()
-    const after = event.clientY > rect.top + rect.height / 2
-    const targetDomPosition = editor.view.posAtDOM(block, 0)
-    const targetResolved = editor.state.doc.resolve(targetDomPosition)
-    if (targetResolved.depth === 0) return
-    const targetPosition = targetResolved.before(1)
-    const targetNode = editor.state.doc.nodeAt(targetPosition)
-    if (!targetNode) return
+    if (!editor || !dragSource.current || dropIndex.current === null) return
     const source = dragSource.current
-    if (source.position === targetPosition) return
-    const destination = targetPosition + (after ? targetNode.nodeSize : 0)
+    if (source.index >= editor.state.doc.childCount || editor.state.doc.child(source.index) !== source.node) return
+    const insertionIndex = Math.max(0, Math.min(dropIndex.current, editor.state.doc.childCount))
+    const destinationIndex = insertionIndex > source.index ? insertionIndex - 1 : insertionIndex
+    if (destinationIndex === source.index) return
+    let destination = 0
+    for (let index = 0; index < insertionIndex; index += 1) destination += editor.state.doc.child(index).nodeSize
     const transaction = editor.state.tr.delete(source.position, source.position + source.node.nodeSize)
-    const adjusted = transaction.mapping.map(destination, after ? -1 : 1)
+    const adjusted = transaction.mapping.map(destination, insertionIndex > source.index ? -1 : 1)
     if (adjusted < 0 || adjusted > transaction.doc.content.size) return
     transaction.insert(adjusted, source.node)
     editor.view.dispatch(transaction)
-    dragSource.current = null
-    block.classList.remove('block-drop-before', 'block-drop-after')
-    dropTarget.current = null
+    clearDropTarget()
   }
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>): void => {
-    event.preventDefault()
     if (!dragSource.current || !(event.target instanceof HTMLElement)) return
+    const source = dragSource.current
+    event.preventDefault()
     const target = event.target.closest<HTMLElement>('.tiptap > *')
     if (!target) return
-    if (dropTarget.current && dropTarget.current !== target) dropTarget.current.classList.remove('block-drop-before', 'block-drop-after')
+    const blocks = Array.from(editor?.view.dom.children ?? [])
+    const targetIndex = blocks.indexOf(target)
+    if (!editor || targetIndex < 0 || targetIndex >= editor.state.doc.childCount) return
     const rect = target.getBoundingClientRect()
     const after = event.clientY > rect.top + rect.height / 2
-    target.classList.toggle('block-drop-after', after)
-    target.classList.toggle('block-drop-before', !after)
-    dropTarget.current = target
+    const insertionIndex = targetIndex + Number(after)
+    if (insertionIndex === source.index || insertionIndex === source.index + 1) {
+      clearDropPreview()
+      return
+    }
+    const sourceHeight = source.element.getBoundingClientRect().height + 8
+    blocks.forEach((child, index) => {
+      if (!(child instanceof HTMLElement)) return
+      child.classList.remove('block-drag-source', 'block-drag-shift-up', 'block-drag-shift-down')
+      child.style.removeProperty('--drag-shift')
+      if (index === source.index) {
+        child.classList.add('block-drag-source')
+      } else if (insertionIndex > source.index && index > source.index && index < insertionIndex) {
+        child.classList.add('block-drag-shift-up')
+        child.style.setProperty('--drag-shift', `${sourceHeight}px`)
+      } else if (insertionIndex < source.index && index >= insertionIndex && index < source.index) {
+        child.classList.add('block-drag-shift-down')
+        child.style.setProperty('--drag-shift', `${sourceHeight}px`)
+      }
+    })
+    dropIndex.current = insertionIndex
+    const wrapperRect = wrapper.current?.getBoundingClientRect()
+    if (dropIndicator.current && wrapperRect) {
+      const adjustedRect = target.getBoundingClientRect()
+      dropIndicator.current.style.top = `${adjustedRect.top - wrapperRect.top + (wrapper.current?.scrollTop ?? 0) + (after ? adjustedRect.height : 0)}px`
+      dropIndicator.current.style.display = 'block'
+    }
+  }
+
+  const clearDropPreview = (): void => {
+    if (editor) {
+      Array.from(editor.view.dom.children).forEach((child) => {
+        if (!(child instanceof HTMLElement)) return
+        child.classList.remove('block-drag-source', 'block-drag-shift-up', 'block-drag-shift-down')
+        child.style.removeProperty('--drag-shift')
+      })
+    }
+    dropIndex.current = null
+    if (dropIndicator.current) dropIndicator.current.style.display = 'none'
   }
 
   const clearDropTarget = (): void => {
-    dropTarget.current?.classList.remove('block-drop-before', 'block-drop-after')
-    dropTarget.current = null
+    clearDropPreview()
+    dragSource.current = null
   }
 
   if (!page) return null
@@ -233,9 +270,10 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onTableAc
       onMouseOut={handlePointerOut}
       onMouseLeave={scheduleHandleHide}
       onDragOver={handleDragOver}
-      onDragLeave={(event) => { if (event.target === event.currentTarget) clearDropTarget() }}
+      onDragLeave={(event) => { if (event.target === event.currentTarget) clearDropPreview() }}
       onDrop={moveBlock}
     >
+      <div className="block-drop-indicator" ref={dropIndicator} aria-hidden="true" />
       <div className="editor-document">
         <EditorContent editor={editor} />
       </div>
@@ -269,14 +307,16 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onTableAc
             aria-label={translate(language, 'moveBlock')}
             draggable
             onDragStart={(event) => {
-              const source = editor.state.doc.nodeAt(handle.position)
+              const source = editor.state.doc.child(handle.index)
               if (!source) {
                 event.preventDefault()
                 return
               }
-              dragSource.current = { position: handle.position, node: source }
+              let position = 0
+              for (let index = 0; index < handle.index; index += 1) position += editor.state.doc.child(index).nodeSize
+              dragSource.current = { index: handle.index, position, node: source, element: handle.block }
               event.dataTransfer.effectAllowed = 'move'
-              event.dataTransfer.setData('application/x-owtion-block', 'block')
+              event.dataTransfer.setData('application/x-owtion-block', String(handle.index))
               const preview = handle.block.cloneNode(true)
               if (preview instanceof HTMLElement) {
                 preview.classList.add('block-drag-preview')

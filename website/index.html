@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Owtion — локальный блочный редактор заметок. Всё важное — в одном спокойном, приватном пространстве."
+    />
+    <meta name="theme-color" content="#f8f8f5" />
+    <title>Owtion — место для ваших мыслей</title>
+    <link rel="icon" href="../favicon/favicon.png" type="image/png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <div class="page-noise" aria-hidden="true"></div>
+    <header class="site-header">
+      <a class="brand" href="#home" aria-label="Owtion — на главную">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 38 38" fill="none">
+            <rect x="1" y="1" width="36" height="36" rx="12" fill="currentColor" />
+            <path d="M11 12.5h16M11 18.5h11M11 24.5h14" stroke="white" stroke-width="2.5" stroke-linecap="round" />
+            <circle cx="27.5" cy="24.5" r="2.5" fill="#94B6FF" />
+          </svg>
+        </span>
+        <span class="brand-name">owtion<span class="brand-period">.</span></span>
+      </a>
+
+      <nav class="main-nav" id="main-nav" aria-label="Навигация">
+        <a href="#features" data-i18n="navFeatures">Возможности</a>
+        <a href="#privacy" data-i18n="navPrivacy">Приватность</a>
+        <a href="#download" data-i18n="navDownload">Скачать</a>
+      </nav>
+
+      <div class="header-actions">
+        <button class="language-switch" id="language-switch" type="button" aria-label="Switch language to English">
+          <span class="language-dot" aria-hidden="true"></span>
+          <span id="language-label">RU</span>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
+        </button>
+        <a class="header-download" href="#download">
+          <span data-i18n="getApp">Скачать приложение</span>
+          <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9h10M9 4l5 5-5 5" /></svg>
+        </a>
+        <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Открыть меню" aria-expanded="false">
+          <span></span><span></span>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero section-wrap" id="home">
+        <div class="hero-copy">
+          <div class="eyebrow reveal">
+            <span class="eyebrow-spark" aria-hidden="true">✳</span>
+            <span data-i18n="eyebrow">Ваше личное пространство для идей</span>
+          </div>
+          <h1 class="hero-title reveal" data-i18n="heroTitle">Мысли любят<br />свободное <span>пространство.</span></h1>
+          <p class="hero-description reveal" data-i18n="heroDescription">
+            Заметки, планы и большие идеи — в одном спокойном месте. Без лишнего шума и без облака. Только вы и ваши мысли.
+          </p>
+          <div class="hero-actions reveal">
+            <a class="button button-primary" href="#download">
+              <span data-i18n="heroCta">Попробовать Owtion</span>
+              <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9h10M9 4l5 5-5 5" /></svg>
+            </a>
+            <span class="hero-caption"><span class="caption-dot"></span><span data-i18n="heroNote">Бесплатно · работает офлайн</span></span>
+          </div>
+          <div class="hero-proof reveal">
+            <div class="avatar-stack" aria-hidden="true">
+              <span class="avatar avatar-one">✳</span>
+              <span class="avatar avatar-two">⌘</span>
+              <span class="avatar avatar-three">✦</span>
+            </div>
+            <p><strong data-i18n="proofStrong">Создано для ваших мыслей</strong><br /><span data-i18n="proofText">и не для сбора ваших данных</span></p>
+          </div>
+        </div>
+
+        <div class="hero-art reveal" aria-label="Предпросмотр редактора Owtion">
+          <div class="art-glow art-glow-blue"></div>
+          <div class="art-glow art-glow-lilac"></div>
+          <div class="float-note float-note-top"><span class="float-note-icon">✳</span><span data-i18n="floatingLocal">Всегда под рукой</span></div>
+          <div class="float-note float-note-bottom"><span class="status-check">✓</span><span data-i18n="floatingSaved">Все изменения сохранены</span></div>
+
+          <div class="editor-window">
+            <div class="window-topbar">
+              <div class="window-dots"><i></i><i></i><i></i></div>
+              <div class="window-title">owtion</div>
+              <div class="window-top-icon">⌘</div>
+            </div>
+            <div class="editor-layout">
+              <aside class="editor-sidebar">
+                <div class="sidebar-search"><span class="search-icon">⌕</span><span data-i18n="mockSearch">Поиск заметок</span><kbd>⌘ K</kbd></div>
+                <div class="sidebar-section-label" data-i18n="mockWorkspace">РАБОЧЕЕ ПРОСТРАНСТВО</div>
+                <div class="sidebar-item"><span class="side-icon">◷</span><span data-i18n="mockRecent">Недавние</span></div>
+                <div class="sidebar-item"><span class="side-icon">☆</span><span data-i18n="mockFavorites">Избранное</span></div>
+                <div class="sidebar-section-label sidebar-pages-label" data-i18n="mockPages">МОИ СТРАНИЦЫ</div>
+                <div class="sidebar-item active"><span>🪴</span><span data-i18n="mockIdeas">Идеи и планы</span></div>
+                <div class="sidebar-item"><span>📚</span><span data-i18n="mockReading">Что почитать</span></div>
+                <div class="sidebar-item nested"><span>↳</span><span data-i18n="mockNotes">Заметки</span></div>
+                <div class="sidebar-item"><span>✈️</span><span data-i18n="mockTravel">Путешествия</span></div>
+                <div class="sidebar-bottom"><span class="settings-wheel">⚙</span><span data-i18n="mockSettings">Настройки</span></div>
+              </aside>
+              <div class="editor-main">
+                <div class="document-breadcrumb"><span data-i18n="mockBreadcrumb">Мои страницы</span><span>/</span><span data-i18n="mockIdeas">Идеи и планы</span><span class="breadcrumb-star">☆</span></div>
+                <div class="document-content">
+                  <div class="document-date" data-i18n="mockDate">ЛИЧНОЕ · ОБНОВЛЕНО ТОЛЬКО ЧТО</div>
+                  <h2 data-i18n="mockTitle">Идеи и планы</h2>
+                  <p class="doc-intro" data-i18n="mockIntro">Хорошие идеи начинаются с того, что их не нужно держать в голове.</p>
+                  <div class="doc-rule"></div>
+                  <h3 data-i18n="mockToday">На этой неделе</h3>
+                  <div class="check-row"><span class="checkbox checked">✓</span><span data-i18n="mockTask1">Наметить главные приоритеты</span></div>
+                  <div class="check-row"><span class="checkbox"></span><span data-i18n="mockTask2">Найти немного времени для себя</span></div>
+                  <div class="check-row"><span class="checkbox"></span><span data-i18n="mockTask3">Начать что-нибудь новое</span></div>
+                  <div class="doc-callout"><span>✳</span><span data-i18n="mockCallout">Маленький шаг — тоже движение вперёд.</span></div>
+                  <div class="editor-cursor"></div>
+                </div>
+                <div class="editor-bottom"><span><i></i><span data-i18n="mockLocal">Сохранено на устройстве</span></span><span data-i18n="mockWordCount">34 слова</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="art-sparkle sparkle-one">✦</div>
+          <div class="art-sparkle sparkle-two">✳</div>
+        </div>
+        <div class="hero-scroll"><span data-i18n="scrollMore">ЛИСТАЙТЕ, ТУТ ЕЩЁ</span><span class="scroll-line"></span></div>
+      </section>
+
+      <section class="feature-intro section-wrap" id="features">
+        <div class="section-kicker reveal"><span>01</span><span data-i18n="featuresKicker">ПРОСТРАНСТВО ДЛЯ ЯСНОСТИ</span></div>
+        <div class="feature-heading-row">
+          <h2 class="section-title reveal" data-i18n="featuresTitle">Всё нужное.<br /><span>Ничего лишнего.</span></h2>
+          <p class="section-lede reveal" data-i18n="featuresLead">Owtion помогает замечать важное, наводить порядок в мыслях и возвращаться к ним тогда, когда нужно.</p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature-card feature-card-editor reveal">
+            <div class="card-heading"><span class="feature-index">01 / WRITE</span><span class="card-arrow">↗</span></div>
+            <div class="blocks-visual" aria-hidden="true">
+              <div class="block-row"><span class="block-hash">H1</span><span class="block-line line-long"></span></div>
+              <div class="block-row"><span class="block-dot">•</span><span class="block-line line-medium"></span></div>
+              <div class="block-row"><span class="block-check">✓</span><span class="block-line line-short"></span></div>
+              <div class="block-row"><span class="block-code">{ }</span><span class="block-line line-medium"></span></div>
+              <div class="block-plus">+</div>
+            </div>
+            <h3 data-i18n="featureBlocksTitle">Пиши свободно</h3>
+            <p data-i18n="featureBlocksText">Заголовки, списки, чек-листы, таблицы и кодовые блоки. Создавай страницу так, как думаешь.</p>
+          </article>
+
+          <article class="feature-card feature-card-organize reveal">
+            <div class="card-heading"><span class="feature-index">02 / ORGANIZE</span><span class="card-arrow">↗</span></div>
+            <div class="pages-visual" aria-hidden="true">
+              <div class="mini-page mini-page-one"><span>🌱</span><b data-i18n="visualPersonal">Личное</b><span class="mini-lines"><i></i><i></i></span></div>
+              <div class="mini-page mini-page-two"><span>✦</span><b data-i18n="visualIdeas">Идеи и планы</b><span class="mini-lines"><i></i><i></i></span></div>
+              <div class="mini-page mini-page-three"><span>↳</span><b data-i18n="visualProject">Новый проект</b></div>
+              <div class="mini-page mini-page-four"><span>☆</span><b data-i18n="visualFavorite">Избранное</b></div>
+            </div>
+            <h3 data-i18n="featureOrganizeTitle">Наведи порядок</h3>
+            <p data-i18n="featureOrganizeText">Распределяйте ваши страницы на логические группы</p>
+          </article>
+
+          <article class="feature-card feature-card-focus reveal">
+            <div class="card-heading"><span class="feature-index">03 / FOCUS</span><span class="card-arrow">↗</span></div>
+            <div class="focus-visual" aria-hidden="true">
+              <div class="focus-orbit orbit-one"></div><div class="focus-orbit orbit-two"></div>
+              <div class="focus-core"><span>✳</span></div>
+              <div class="focus-label"><span class="focus-pulse"></span><span data-i18n="visualFocus">Только ваши мысли</span></div>
+            </div>
+            <h3 data-i18n="featureFocusTitle">Сохрани фокус</h3>
+            <p data-i18n="featureFocusText">Тихий интерфейс, тёмная или светлая тема и никакой суеты. Просто садись и пиши.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="privacy-section" id="privacy">
+        <div class="privacy-inner section-wrap">
+          <div class="privacy-copy reveal">
+            <div class="section-kicker privacy-kicker"><span>02</span><span data-i18n="privacyKicker">ВАШИ ДАННЫЕ — ВАШИ</span></div>
+            <h2 class="section-title privacy-title" data-i18n="privacyTitle">Личное значит<br /><span>личное.</span></h2>
+            <p class="privacy-lede" data-i18n="privacyLead">Заметки хранятся на вашем компьютере. Без аккаунта, облачной синхронизации и телеметрии. Ваши слова остаются вашими.</p>
+            <div class="privacy-points">
+              <div class="privacy-point"><span class="point-check">✓</span><span data-i18n="privacyPoint1">Работает без подключения к интернету</span></div>
+              <div class="privacy-point"><span class="point-check">✓</span><span data-i18n="privacyPoint2">Никаких аккаунтов и подписок</span></div>
+              <div class="privacy-point"><span class="point-check">✓</span><span data-i18n="privacyPoint3">Импорт и экспорт Markdown</span></div>
+            </div>
+          </div>
+          <div class="privacy-visual reveal" aria-hidden="true">
+            <div class="privacy-orbit privacy-orbit-outer"></div>
+            <div class="privacy-orbit privacy-orbit-inner"></div>
+            <div class="privacy-glass-card">
+              <div class="privacy-lock"><svg viewBox="0 0 32 32" fill="none"><rect x="5" y="14" width="22" height="15" rx="5" fill="currentColor"/><path d="M10 14V10a6 6 0 0 1 12 0v4" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="16" cy="21" r="2" fill="white"/><path d="M16 23v2" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></div>
+              <span class="privacy-card-label" data-i18n="privacyLocalLabel">ВАШЕ УСТРОЙСТВО</span>
+              <strong data-i18n="privacyCardTitle">Всё остаётся<br />только здесь.</strong>
+              <span class="privacy-card-status"><i></i><span data-i18n="privacyCardStatus">Локально и приватно</span></span>
+            </div>
+            <div class="privacy-chip chip-top"><span>01</span><span data-i18n="privacyChip1">ваши заметки</span></div>
+            <div class="privacy-chip chip-bottom"><span>02</span><span data-i18n="privacyChip2">ваше устройство</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="download-section section-wrap" id="download">
+        <div class="download-card reveal">
+          <div class="download-glow"></div>
+          <div class="download-content">
+            <div class="section-kicker download-kicker"><span>03</span><span data-i18n="downloadKicker">НЕБОЛЬШОЙ ШАГ К ЯСНОСТИ</span></div>
+            <h2 data-i18n="downloadTitle">Дай мыслям<br />немного <span>места.</span></h2>
+            <p data-i18n="downloadLead">Твоё спокойное пространство уже ждёт. Бесплатно, приватно и без лишних настроек.</p>
+            <a class="button button-light" href="../release/Owtion%20Setup%201.0.0.exe" download>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m0 0 4-4m-4 4L6 8M3 14v3h14v-3" /></svg>
+              <span data-i18n="downloadButton">Скачать для Windows</span>
+              <span class="button-version">v1.0.0</span>
+            </a>
+            <div class="download-footnote"><span>✳</span><span data-i18n="downloadNote">Windows · бесплатно · ваши данные остаются у вас</span></div>
+          </div>
+          <div class="download-art" aria-hidden="true">
+            <div class="download-disc disc-one"></div><div class="download-disc disc-two"></div>
+            <div class="download-logo"><svg viewBox="0 0 84 84" fill="none"><rect x="2" y="2" width="80" height="80" rx="27" fill="currentColor"/><path d="M26 28h32M26 42h23M26 56h28" stroke="white" stroke-width="5" stroke-linecap="round"/><circle cx="57" cy="56" r="5" fill="#A9C4FF"/></svg></div>
+            <div class="download-sparkle">✳</div>
+            <div class="download-mini-window"><span></span><span></span><span></span><div></div><div></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="closing-note section-wrap reveal">
+        <span class="closing-star">✳</span>
+        <p data-i18n="closingNote">Хорошие мысли заслуживают хорошего места.</p>
+        <span class="closing-star">✳</span>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a class="brand footer-brand" href="#home">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 38 38" fill="none"><rect x="1" y="1" width="36" height="36" rx="12" fill="currentColor"/><path d="M11 12.5h16M11 18.5h11M11 24.5h14" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="27.5" cy="24.5" r="2.5" fill="#94B6FF"/></svg></span>
+        <span class="brand-name">owtion<span class="brand-period">.</span></span>
+      </a>
+      <p data-i18n="footerCopy">Тихое место для больших мыслей.</p>
+      <span class="footer-copyright">© 2025 Owtion</span>
+      <a class="back-top" href="#home"><span data-i18n="backTop">Наверх</span><span>↑</span></a>
+    </footer>
+  </body>
+</html>

@@ -1,48 +1,51 @@
 # Owtion
 
-Локальный блочный редактор заметок для Windows, macOS и Linux. Страницы и настройки сохраняются на устройстве; сетевые сервисы и телеметрия не используются.
+<img width="1319" height="858" alt="image" src="https://github.com/user-attachments/assets/23790f3d-beec-4c1c-b9ee-952f535d0429" />
 
-## Запуск
+
+A local block-based note editor for Windows, macOS, and Linux. Pages and settings are stored on the device; no network services or telemetry are used.
+
+## Running
 
 ```powershell
 npm install
 npm run dev
 ```
 
-Сборка приложения и установщика:
+Building the app and installer:
 
 ```powershell
 npm run build
 npm run make
 ```
 
-Установщики создаются в `release/`. Скрипт `typecheck` проверяет TypeScript, `lint` запускает ESLint.
+Installers are created in `release/`. The `typecheck` script checks TypeScript, and `lint` runs ESLint.
 
-В приложении используется `better-sqlite3`. Если нативный модуль для установленной версии Electron не собран, main-процесс записывает причину в `owtion-errors.log` и использует совместимый встроенный SQLite-драйвер Node.js. В обоих случаях схема и файл базы остаются SQLite (`owtion.sqlite`).
+The app uses `better-sqlite3`. If the native module for the installed Electron version is not built, the main process writes the reason to `owtion-errors.log` and uses Node.js's compatible built-in SQLite driver. In both cases, the schema and database file remain SQLite (`owtion.sqlite`).
 
-## Данные и миграция
+## Data and migration
 
-База создаётся в каталоге `userData` Electron при первом запуске. Инициализация идемпотентна (`CREATE TABLE/INDEX IF NOT EXISTS`).
+The database is created in Electron's `userData` directory on first launch. Initialization is idempotent (`CREATE TABLE/INDEX IF NOT EXISTS`).
 
-- `pages`: содержимое в формате JSON, дерево страниц и избранное. Удаление страницы навсегда удаляет её и вложенные страницы.
-- `blocks_index`: поисковый индекс текста блоков.
-- `settings`: пользовательские настройки.
-- `groups`: пользовательские группы страниц с названием и lucide-иконкой; `pages.group_id` задаёт принадлежность группе.
+- `pages`: content in JSON format, page tree, and favorites. Deleting a page permanently deletes it and its nested pages.
+- `blocks_index`: search index of block text.
+- `settings`: user settings.
+- `groups`: user-defined page groups with a name and lucide icon; `pages.group_id` sets group membership.
 
-Ошибки БД записываются в `owtion-errors.log` рядом с базой.
+Database errors are written to `owtion-errors.log` next to the database.
 
-## Реализовано
+## Implemented
 
-- [x] Редактор на TipTap: заголовки, списки, чек-лист, цитата, код с подсветкой, разделитель, изображение, callout, таблица, toggle и embed.
-- [x] Меню `/` с fuzzy-поиском, быстрыми блоками, клавиатурной навигацией и позиционированием у курсора.
-- [x] Перемещение блока за handle; вставка блока кнопкой `+`; автосохранение через 500 мс.
-- [x] Дерево страниц с drag-and-drop-вложенностью, избранное и поиск по содержимому.
-- [x] Палитра команд `Ctrl/⌘+K`, светлая/тёмная темы, оглавление и горячие клавиши.
-- [x] Плавные микроанимации, матовое стекло для всплывающих меню и монохромные иконки страниц.
-- [x] Экспорт Markdown/HTML, импорт Markdown, локальные настройки и автозапуск ОС.
-- [x] Frameless titlebar, системное меню и tray-меню на русском языке.
+- [x] TipTap editor: headings, lists, checklist, quote, code with syntax highlighting, divider, image, callout, table, toggle, and embed.
+- [x] `/` menu with fuzzy search, quick blocks, keyboard navigation, and cursor positioning.
+- [x] Block movement via handle; block insertion via the `+` button; autosave after 500 ms.
+- [x] Page tree with drag-and-drop nesting, favorites, and content search.
+- [x] `Ctrl/⌘+K` command palette, light/dark themes, table of contents, and keyboard shortcuts.
+- [x] Smooth micro-animations, frosted glass for pop-up menus, and monochrome page icons.
+- [x] Markdown/HTML export, Markdown import, local settings, and OS autostart.
+- [x] Frameless titlebar, system menu, and tray menu in Russian.
 
-## SQL-схема
+## SQL schema
 
 ```sql
 CREATE TABLE pages (

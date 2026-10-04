@@ -17,6 +17,7 @@ import { Callout } from './extensions/Callout'
 import { Toggle } from './extensions/Toggle'
 import { Embed } from './extensions/Embed'
 import { SlashCommand } from './extensions/SlashCommand'
+import { WikiLink } from './extensions/WikiLink'
 import { usePages } from '../../store/pages'
 import { useUi } from '../../store/ui'
 import { translate } from '../../lib/i18n'
@@ -64,6 +65,7 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onTableAc
     Callout,
     Toggle,
     Embed,
+    WikiLink,
     SlashCommand
   ], [])
 
@@ -72,6 +74,18 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onTableAc
     content: page?.content,
     editorProps: {
       attributes: { class: 'tiptap', spellcheck: 'true', 'aria-label': translate(language, 'pageEditor') },
+      handleClick: (_view, _position, event) => {
+        if (!(event.target instanceof HTMLElement)) return false
+        const link = event.target.closest<HTMLElement>('[data-wiki-link]')
+        if (!link) return false
+        const pages = usePages.getState().pages
+        const groupName = link.dataset.groupName
+        const pageTitle = link.dataset.pageTitle
+        const linked = pages.find((item) => item.id === link.dataset.pageId)
+          ?? pages.find((item) => item.title === pageTitle && (usePages.getState().groups.find((group) => group.id === item.groupId)?.name ?? translate(language, 'personal')) === groupName)
+        if (linked) void usePages.getState().select(linked.id)
+        return Boolean(linked)
+      },
       handleKeyDown: (_view, event) => {
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'b') {
           editor?.chain().focus().toggleBold().run()
@@ -187,6 +201,20 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onTableAc
 
   const moveBlock = (event: React.DragEvent<HTMLDivElement>): void => {
     event.preventDefault()
+    const draggedPageId = event.dataTransfer.getData('text/page-id')
+    if (draggedPageId && editor) {
+      const pageToLink = usePages.getState().pages.find((item) => item.id === draggedPageId)
+      const point = editor.view.posAtCoords({ left: event.clientX, top: event.clientY })
+      if (pageToLink && point) {
+        const groupName = usePages.getState().groups.find((group) => group.id === pageToLink.groupId)?.name ?? translate(language, 'personal')
+        editor.chain().focus().setTextSelection(point.pos).insertContent({
+          type: 'text',
+          text: pageToLink.title,
+          marks: [{ type: 'wikiLink', attrs: { pageId: pageToLink.id, groupName, pageTitle: pageToLink.title } }]
+        }).run()
+      }
+      return
+    }
     if (!editor || !dragSource.current || dropIndex.current === null) return
     const source = dragSource.current
     if (source.index >= editor.state.doc.childCount || editor.state.doc.child(source.index) !== source.node) return
@@ -204,6 +232,11 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onTableAc
   }
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>): void => {
+    if (event.dataTransfer.types.includes('text/page-id')) {
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'link'
+      return
+    }
     if (!dragSource.current || !(event.target instanceof HTMLElement)) return
     const source = dragSource.current
     event.preventDefault()

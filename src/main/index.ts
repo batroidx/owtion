@@ -42,6 +42,28 @@ function createWindow(): void {
     }
   })
   mainWindow.on('closed', () => { mainWindow = null })
+  mainWindow.webContents.session.setSpellCheckerEnabled(true)
+  mainWindow.webContents.session.setSpellCheckerLanguages(['ru-RU', 'en-US'])
+  mainWindow.webContents.on('context-menu', (event, params) => {
+    if (!params.isEditable || (!params.misspelledWord && !params.selectionText)) return
+    event.preventDefault()
+    const suggestions = params.dictionarySuggestions.map((suggestion): Electron.MenuItemConstructorOptions => ({
+      label: suggestion,
+      click: () => mainWindow?.webContents.replaceMisspelling(suggestion)
+    }))
+    const template: Electron.MenuItemConstructorOptions[] = [
+      ...(suggestions.length ? suggestions : [{ label: activeLanguage === 'ru' ? 'Варианты не найдены' : 'No suggestions', enabled: false }]),
+      { type: 'separator' },
+      { role: 'undo' },
+      { role: 'redo' },
+      { type: 'separator' },
+      { role: 'cut' },
+      { role: 'copy' },
+      { role: 'paste' },
+      { role: 'selectAll' }
+    ]
+    Menu.buildFromTemplate(template).popup({ window: mainWindow ?? undefined })
+  })
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url)
     return { action: 'deny' }

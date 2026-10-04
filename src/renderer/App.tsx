@@ -8,6 +8,7 @@ import Editor from './components/Editor/Editor'
 import type { EditorHandle } from './components/Editor/Editor'
 import CommandPalette from './components/CommandPalette/CommandPalette'
 import Settings from './components/Settings'
+import GraphView from './components/GraphView'
 import { usePages } from './store/pages'
 import { useUi } from './store/ui'
 import { importMarkdown } from './lib/markdown'
@@ -76,7 +77,7 @@ export default function App(): JSX.Element {
       else if (mod && event.key === '\\') { event.preventDefault(); toggleSidebar() }
       else if (mod && event.shiftKey && event.key.toLowerCase() === 'd') { event.preventDefault(); toggleTheme() }
       else if (mod && event.key === '/') { event.preventDefault(); if (shortcutsTimer.current) clearTimeout(shortcutsTimer.current); setShortcutsClosing(false); setShowShortcuts(true) }
-      else if (event.key === 'Escape') { closeShortcuts(); useUi.getState().setSettingsOpen(false); useUi.getState().setPaletteOpen(false) }
+      else if (event.key === 'Escape') { closeShortcuts(); useUi.getState().setSettingsOpen(false); useUi.getState().setPaletteOpen(false); useUi.getState().setGraphOpen(false) }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
@@ -141,6 +142,7 @@ export default function App(): JSX.Element {
     </div>
     <CommandPalette />
     <Settings />
+    <GraphView />
     {showShortcuts && <div className={`modal-backdrop ${shortcutsClosing ? 'is-closing' : ''}`} onMouseDown={(event: MouseEvent<HTMLDivElement>) => { if (event.target === event.currentTarget) closeShortcuts() }}>
       <section className="shortcuts-modal" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title"><header><h2 id="shortcuts-title">{translate(language, 'shortcuts')}</h2><button className="icon-button" onClick={closeShortcuts}>×</button></header>
         <div className="shortcut-row"><span>{translate(language, 'commandPalette')}</span><kbd>Ctrl / ⌘ K</kbd></div>

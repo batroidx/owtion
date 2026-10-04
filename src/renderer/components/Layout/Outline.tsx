@@ -18,8 +18,7 @@ export default function Outline(): JSX.Element | null {
     walk(editorState)
     return output
   }, [editorState])
-  if (!open) return null
-  return <aside className="outline"><h2>{translate(language, 'outline')}</h2>{headings.length ? headings.map((heading, index) => <button key={`${heading.title}-${index}`} style={{ paddingLeft: 8 + (heading.level - 1) * 12 }} onClick={() => {
+  return <aside className={`outline ${open ? 'is-open' : 'is-closed'}`} aria-hidden={!open}><h2>{translate(language, 'outline')}</h2>{headings.length ? headings.map((heading, index) => <button key={`${heading.title}-${index}`} style={{ paddingLeft: 8 + (heading.level - 1) * 12 }} tabIndex={open ? 0 : -1} onClick={() => {
     const nodes = Array.from(document.querySelectorAll('.tiptap h1, .tiptap h2, .tiptap h3'))
     const element = nodes[index] as HTMLElement | undefined
     element?.scrollIntoView({ behavior: 'smooth', block: 'center' })

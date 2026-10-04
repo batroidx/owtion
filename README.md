@@ -40,9 +40,10 @@ Database errors are written to `owtion-errors.log` next to the database.
 - [x] `/` menu with fuzzy search, quick blocks, keyboard navigation, and cursor positioning.
 - [x] Block movement via handle; block insertion via the `+` button; autosave after 500 ms.
 - [x] Page tree with drag-and-drop nesting, favorites, and content search.
-- [x] `Ctrl/⌘+K` command palette, light/dark themes, table of contents, and keyboard shortcuts.
+- [x] `Ctrl/⌘+K` command palette, light/dark themes, animated table of contents, link graph, and keyboard shortcuts.
 - [x] Smooth micro-animations, frosted glass for pop-up menus, and monochrome page icons.
-- [x] Markdown/HTML export, Markdown import, local settings, and OS autostart.
+- [x] Markdown/HTML export, structured Markdown import, wiki links with autocomplete and drag-to-link, local settings, and OS autostart.
+- [x] Spell-check suggestions in the native editor context menu.
 - [x] Frameless titlebar, system menu, and tray menu in Russian.
 
 ## SQL schema

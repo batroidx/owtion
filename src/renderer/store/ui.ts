@@ -11,12 +11,14 @@ interface UiState {
   paletteOpen: boolean
   settingsOpen: boolean
   outlineOpen: boolean
+  graphOpen: boolean
   setTheme: (theme: 'light' | 'dark') => void
   toggleTheme: () => void
   toggleSidebar: () => void
   setPaletteOpen: (open: boolean) => void
   setSettingsOpen: (open: boolean) => void
   toggleOutline: () => void
+  setGraphOpen: (open: boolean) => void
   setLanguage: (language: 'ru' | 'en') => void
   setFontFamily: (font: 'system' | 'serif' | 'mono') => void
   setFontSize: (size: number) => void
@@ -35,6 +37,7 @@ export const useUi = create<UiState>((set) => ({
   paletteOpen: false,
   settingsOpen: false,
   outlineOpen: false,
+  graphOpen: false,
   setTheme: (theme) => {
     document.documentElement.dataset.theme = theme
     void window.owtion.settings.set('theme', theme)
@@ -50,6 +53,7 @@ export const useUi = create<UiState>((set) => ({
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   toggleOutline: () => set((state) => ({ outlineOpen: !state.outlineOpen })),
+  setGraphOpen: (graphOpen) => set({ graphOpen }),
   setLanguage: (language) => {
     void window.owtion.settings.set('language', language)
     set({ language })

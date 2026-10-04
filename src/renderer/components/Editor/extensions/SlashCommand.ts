@@ -25,6 +25,7 @@ const items: SlashItem[] = [
   { title: 'Чек-лист', description: 'Список задач с флажками', aliases: ['task', 'todo'], type: 'taskList', icon: '☑', shortcut: '[] ', action: (e, r) => e.chain().focus().deleteRange(r).toggleTaskList().run() },
   { title: 'Цитата', description: 'Блок цитирования', aliases: ['quote'], type: 'blockquote', icon: '❝', shortcut: '> ', action: (e, r) => e.chain().focus().deleteRange(r).toggleBlockquote().run() },
   { title: 'Код', description: 'Блок кода с подсветкой', aliases: ['code'], type: 'codeBlock', icon: '</>', shortcut: '```', action: (e, r) => e.chain().focus().deleteRange(r).setCodeBlock({ language: 'plaintext' }).run() },
+  { title: 'Вики-ссылка', description: 'Ссылка на страницу Owtion', aliases: ['wiki', 'wikilink', 'страница'], type: 'wikiLink', icon: '↗', shortcut: '[[', action: (e, r) => e.chain().focus().deleteRange(r).insertContent('[[').run() },
   { title: 'Разделитель', description: 'Горизонтальная линия', aliases: ['divider', 'hr'], type: 'divider', icon: '―', shortcut: '---', action: (e, r) => e.chain().focus().deleteRange(r).setHorizontalRule().run() },
   { title: 'Изображение', description: 'Вставить изображение с устройства', aliases: ['image', 'photo', 'картинка'], type: 'image', icon: '▧', shortcut: '', action: (e, r) => { void insertImage(e, r) } },
   { title: 'Таблица', description: 'Таблица 3 × 3', aliases: ['table'], type: 'table', icon: '▦', shortcut: '', action: (e, r) => e.chain().focus().deleteRange(r).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() }
@@ -42,7 +43,8 @@ const englishCommands: Record<string, [string, string]> = {
   'Разделитель': ['Divider', 'Horizontal divider'],
   'Изображение': ['Image', 'Choose an image from this device'],
   'Таблица': ['Table', '3 × 3 table'],
-  'Код': ['Code', 'Syntax-highlighted code block']
+  'Код': ['Code', 'Syntax-highlighted code block'],
+  'Вики-ссылка': ['Wiki link', 'Link to an Owtion page']
 }
 
 async function insertImage(editor: Editor, range: { from: number; to: number }): Promise<void> {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Fuse from 'fuse.js'
-import { FileDown, FilePlus2, FileText, Moon, Settings, Trash2 } from 'lucide-react'
+import { FileDown, FilePlus2, FileText, Moon, Settings, Trash2, Network } from 'lucide-react'
 import { usePages } from '../../store/pages'
 import { useUi } from '../../store/ui'
 import { exportMarkdown } from '../../lib/markdown'
@@ -26,6 +26,7 @@ export default function CommandPalette(): JSX.Element | null {
   const remove = usePages((state) => state.remove)
   const toggleTheme = useUi((state) => state.toggleTheme)
   const setSettingsOpen = useUi((state) => state.setSettingsOpen)
+  const setGraphOpen = useUi((state) => state.setGraphOpen)
   const language = useUi((state) => state.language)
   const query = useUi((state) => state.commandQuery)
   const setQuery = useUi((state) => state.setCommandQuery)
@@ -48,8 +49,8 @@ export default function CommandPalette(): JSX.Element | null {
 
   const commands = useMemo<PaletteOption[]>(() => {
     const labels = language === 'ru'
-      ? { create: 'Создать страницу', remove: 'Удалить текущую страницу', export: 'Экспортировать в Markdown', theme: 'Сменить тему', settings: 'Открыть настройки', search: 'Поиск по всем заметкам' }
-      : { create: 'Create page', remove: 'Delete current page', export: 'Export as Markdown', theme: 'Switch theme', settings: 'Open settings', search: 'Search all notes' }
+      ? { create: 'Создать страницу', remove: 'Удалить текущую страницу', export: 'Экспортировать в Markdown', theme: 'Сменить тему', settings: 'Открыть настройки', search: 'Поиск по всем заметкам', graph: 'Открыть граф ссылок' }
+      : { create: 'Create page', remove: 'Delete current page', export: 'Export as Markdown', theme: 'Switch theme', settings: 'Open settings', search: 'Search all notes', graph: 'Open link graph' }
     const saveMarkdown = (): void => {
       if (!current) return
       const url = URL.createObjectURL(new Blob([exportMarkdown(current.title, current.content, language)], { type: 'text/markdown;charset=utf-8' }))
@@ -65,9 +66,10 @@ export default function CommandPalette(): JSX.Element | null {
       { key: 'export', label: labels.export, icon: <FileDown size={16} />, kind: 'command', run: saveMarkdown },
       { key: 'theme', label: labels.theme, icon: <Moon size={16} />, kind: 'command', run: toggleTheme },
       { key: 'settings', label: labels.settings, icon: <Settings size={16} />, kind: 'command', run: () => setSettingsOpen(true) },
+      { key: 'graph', label: labels.graph, icon: <Network size={16} />, kind: 'command', run: () => setGraphOpen(true) },
       { key: 'search', label: labels.search, icon: <FileText size={16} />, kind: 'command', run: () => setQuery('') }
     ]
-  }, [create, current, language, remove, setQuery, setSettingsOpen, toggleTheme])
+  }, [create, current, language, remove, setGraphOpen, setQuery, setSettingsOpen, toggleTheme])
 
   const options = useMemo(() => {
     const normalizedQuery = query.trim()

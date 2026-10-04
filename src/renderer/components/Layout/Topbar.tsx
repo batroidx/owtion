@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MoreHorizontal, Star, Share2, PanelRight, FileDown, Copy, Trash2, FileCode2 } from 'lucide-react'
+import { MoreHorizontal, Star, Share2, PanelRight, FileDown, Copy, Trash2, FileCode2, Network } from 'lucide-react'
 import { usePages } from '../../store/pages'
 import { useUi } from '../../store/ui'
 import { exportHtml, exportMarkdown } from '../../lib/markdown'
@@ -11,9 +11,12 @@ export default function Topbar(): JSX.Element | null {
   const remove = usePages((state) => state.remove)
   const create = usePages((state) => state.create)
   const toggleOutline = useUi((state) => state.toggleOutline)
+  const setGraphOpen = useUi((state) => state.setGraphOpen)
   const language = useUi((state) => state.language)
+  const groups = usePages((state) => state.groups)
   const [menuOpen, setMenuOpen] = useState(false)
   if (!page) return null
+  const category = groups.find((group) => group.id === page.groupId)?.name ?? translate(language, 'personal')
   const saveMarkdown = (): void => {
     const blob = new Blob([exportMarkdown(page.title, page.content, language)], { type: 'text/markdown;charset=utf-8' })
     const link = document.createElement('a')
@@ -32,8 +35,9 @@ export default function Topbar(): JSX.Element | null {
   }
   return (
     <header className="topbar">
-      <div className="breadcrumbs"><span>{page.title || translate(language, 'untitledPage')}</span></div>
+      <div className="breadcrumbs"><span>{category}</span><span aria-hidden="true">🡲</span><span>{page.title || translate(language, 'untitledPage')}</span></div>
       <div className="topbar-actions">
+        <button className="icon-button" data-tooltip={translate(language, 'graph')} aria-label={translate(language, 'graph')} onClick={() => setGraphOpen(true)}><Network size={16} /></button>
         <button className={`icon-button ${page.isFavorite ? 'favorite-active' : ''}`} data-tooltip={page.isFavorite ? translate(language, 'removeFavorite') : translate(language, 'favorite')} aria-label={page.isFavorite ? translate(language, 'removeFavorite') : translate(language, 'favorite')} onClick={() => void update(page.id, { isFavorite: !page.isFavorite })}><Star size={17} /></button>
         <button className="icon-button" data-tooltip={translate(language, 'share')} aria-label={translate(language, 'share')} onClick={() => window.alert(translate(language, 'shareOffline'))}><Share2 size={16} /></button>
         <button className="icon-button" data-tooltip={translate(language, 'outline')} aria-label={translate(language, 'outline')} onClick={toggleOutline}><PanelRight size={16} /></button>
